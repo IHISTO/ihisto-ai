@@ -9,7 +9,7 @@ from PIL import Image
 try:
     INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    # 本地测试如果没有 secrets.toml，可以在这里填，但上线前要改回来
+    # 本地测试备用
     # INTERNAL_API_KEY = "PASTE_YOUR_KEY_HERE"
     st.error("⚠️ 未找到密钥！请确保配置了 .streamlit/secrets.toml")
     st.stop()
@@ -18,7 +18,7 @@ except:
 TOP_LOGO_FILENAME = "color_logo-h.png"
 AVATAR_FILENAME = "new_logo.png"
 
-# Page Config: 居中布局
+# Page Config
 st.set_page_config(page_title="iHisto AI Platform", page_icon="🔬", layout="centered")
 
 # CSS Styling
@@ -31,6 +31,7 @@ st.markdown("""
         .stChatInput { padding-bottom: 20px; }
         .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
+        /* 悬浮按钮样式 */
         div[data-testid="stPopover"] {
             position: fixed;
             bottom: 28px;             
@@ -104,7 +105,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
     st.session_state.messages.append({
         "role": "assistant",
-        "content": "Hello! I am the iHisto AI research consultant. I'm here to ensure your histology experiments succeed. What research target or disease model are you focusing on today?"
+        "content": "Hello! I am the iHisto AI research consultant. How can I help with your histology experiment today?"
     })
 
 for message in st.session_state.messages:
@@ -143,73 +144,78 @@ if user_input:
 
     # Memory
     conversation_history = ""
-    for msg in st.session_state.messages[-8:]: # 增加记忆深度到 8 条
+    for msg in st.session_state.messages[-8:]:
         conversation_history += f"{msg['role'].upper()}: {msg['content']}\n"
 
     chat_avatar = AVATAR_FILENAME if os.path.exists(AVATAR_FILENAME) else None
     
     with st.chat_message("assistant", avatar=chat_avatar):
         message_placeholder = st.empty()
+        full_response = "" # 用来存完整的句子
         
         try:
-            with st.spinner("iHisto AI is analyzing technical risks..."):
-                # --- Vision Mode ---
-                if uploaded_file:
-                    image = Image.open(uploaded_file)
-                    image_prompt = f"""
-                    ACT AS: Senior Pathologist & Scientific Consultant for iHisto.
-                    CONTEXT: User provided an image (ROI Snapshot).
-                    USER QUESTION: "{user_input}"
-                    
-                    TASK:
-                    1. Observation: Describe morphology/staining.
-                    2. Diagnosis: Answer question directly.
-                    3. Service: Mention iHisto's "Digital Pathology Services".
-                    OUTPUT: Strictly in English.
-                    """
-                    response = model.generate_content([image_prompt, image])
+            # --- Vision Mode ---
+            if uploaded_file:
+                image = Image.open(uploaded_file)
+                image_prompt = f"""
+                ACT AS: Senior Pathologist & Scientific Consultant for iHisto.
+                CONTEXT: User provided an image (ROI Snapshot).
+                USER QUESTION: "{user_input}"
                 
-                # --- Text Mode (Deep Consultative Logic) ---
-                else:
-                    # 🔧 核心修改：加入了 Deep Dive 专家提问逻辑
-                    text_prompt = f"""
-                    ACT AS: A Senior Scientific Consultant for iHisto with 20+ years of experience in histology, IHC, and Multiplex IF.
-                    
-                    CURRENT HISTORY:
-                    {conversation_history}
-                    
-                    USER INPUT: "{user_input}"
-                    
-                    YOUR GOAL: Conduct a "Technical Deep Dive" before proposing a solution. You must ensure the experiment is feasible and high-quality.
-                    
-                    INSTRUCTIONS:
-                    
-                    PHASE 1: GREETING & INTENT
-                    - If "Hello", greet professionally and ask about their specific project/target.
-                    
-                    PHASE 2: THE DEEP DIVE INTERVIEW (Crucial!)
-                    - DO NOT just ask "Human or Mouse?".
-                    - Ask **Critical Risk Questions** based on the topic:
-                      - IF **Phospho-proteins**: Ask about ischemia time and phosphatase inhibitors.
-                      - IF **IHC/Antibodies**: Ask about low-expression targets, previous failures, or if they need Signal Amplification (TSA).
-                      - IF **Multiplex/IF**: Ask about co-localization needs, steric hindrance, or autofluorescence issues (e.g., in lung/skin tissue).
-                      - IF **Quantitative Analysis**: Ask if they need simple cell counts vs. H-Score vs. spatial distance analysis.
-                    
-                    - **Rule**: Ask only 2-3 most critical questions at a time. Do not overwhelm the user.
-                    - Tone: "To ensure the best staining quality for [Target], I need to check..."
-                    
-                    PHASE 3: REPORT GENERATION
-                    - ONLY generate the formal proposal when you have gathered technical details or if the user says "Go ahead".
-                    - Format: ### Title, 1. Biology, 2. Optimized Method, 3. Antibodies (with Citations), 4. iHisto Service Link.
-                    - NO "To/From" headers.
-                    
-                    OUTPUT: Strictly in English. Professional, Insightful, Expert.
-                    """
-                    response = model.generate_content(text_prompt)
+                TASK:
+                1. Observation: Briefly describe what you see.
+                2. Diagnosis: Answer question directly and concisely.
+                3. Service: Mention iHisto's "Digital Pathology Services".
+                
+                OUTPUT: Strictly in English. Keep it SHORT and CONCISE.
+                """
+                # 开启 stream=True
+                response = model.generate_content([image_prompt, image], stream=True)
+            
+            # --- Text Mode (Deep Consultative Logic) ---
+            else:
+                text_prompt = f"""
+                ACT AS: A Senior Scientific Consultant for iHisto.
+                
+                CURRENT HISTORY:
+                {conversation_history}
+                
+                USER INPUT: "{user_input}"
+                
+                YOUR GOAL: Conduct a "Technical Deep Dive" but keep the conversation FLUID and SHORT.
+                
+                INSTRUCTIONS:
+                
+                1. **BE CONCISE**: Do not write long paragraphs. Use bullet points. Limit responses to 3-4 sentences where possible.
+                
+                2. **PHASE 1: DISCOVERY**
+                   - If user mentions a broad topic, ask **ONE or TWO** most critical technical questions to narrow it down.
+                   - Example: "For p-AKT, is this FFPE or Frozen tissue? Fixation time is critical." (Don't explain why in long text, just ask).
+                
+                3. **PHASE 2: REPORT**
+                   - Only when details are clear, generate the proposal.
+                   - Structure: ### Title, 1. Biology, 2. Method, 3. Antibodies, 4. Service Link.
+                   - Keep the report sections short and punchy. No fluff.
+                   - NO "To/From" headers.
+                
+                OUTPUT: Strictly in English. Professional but DIRECT.
+                """
+                # 开启 stream=True
+                response = model.generate_content(text_prompt, stream=True)
 
-                full_response = response.text
-                message_placeholder.markdown(full_response)
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
+            # --- 🌊 关键修改：流式输出循环 ---
+            for chunk in response:
+                if chunk.text:
+                    full_response += chunk.text
+                    # 每次加一点字，就更新一下屏幕，模拟打字机效果
+                    # 那个 "▌" 是光标，让它看起来更像在打字
+                    message_placeholder.markdown(full_response + "▌")
+            
+            # 打完字后，把光标去掉，显示最终完整文本
+            message_placeholder.markdown(full_response)
+            
+            # 保存到历史记录
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
                 
         except Exception as e:
             st.error(f"Analysis Error: {e}")
