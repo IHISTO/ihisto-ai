@@ -9,8 +9,8 @@ from PIL import Image
 try:
     INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    # 如果本地没有 secrets，允许临时在这里填，但建议用 secrets.toml
-    # INTERNAL_API_KEY = "PASTE_YOUR_KEY_HERE" 
+    # 本地测试如果没有 secrets.toml，可以在这里填，但上线前要改回来
+    # INTERNAL_API_KEY = "PASTE_YOUR_KEY_HERE"
     st.error("⚠️ 未找到密钥！请确保配置了 .streamlit/secrets.toml")
     st.stop()
 
@@ -31,7 +31,6 @@ st.markdown("""
         .stChatInput { padding-bottom: 20px; }
         .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
-        /* 悬浮按钮样式 */
         div[data-testid="stPopover"] {
             position: fixed;
             bottom: 28px;             
@@ -105,7 +104,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
     st.session_state.messages.append({
         "role": "assistant",
-        "content": "Hello! I am the iHisto AI research consultant. I'm here to help design your experiment. What is your research target or disease model?"
+        "content": "Hello! I am the iHisto AI research consultant. I'm here to ensure your histology experiments succeed. What research target or disease model are you focusing on today?"
     })
 
 for message in st.session_state.messages:
@@ -142,10 +141,9 @@ if user_input:
         st.markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # --- 关键步骤：构建历史对话记录 (Memory) ---
-    # 我们把之前的对话变成一个文本发给 AI，这样它才知道之前聊了什么
+    # Memory
     conversation_history = ""
-    for msg in st.session_state.messages[-6:]: # 只记最近 6 条，避免太长
+    for msg in st.session_state.messages[-8:]: # 增加记忆深度到 8 条
         conversation_history += f"{msg['role'].upper()}: {msg['content']}\n"
 
     chat_avatar = AVATAR_FILENAME if os.path.exists(AVATAR_FILENAME) else None
@@ -154,7 +152,7 @@ if user_input:
         message_placeholder = st.empty()
         
         try:
-            with st.spinner("iHisto AI is thinking..."):
+            with st.spinner("iHisto AI is analyzing technical risks..."):
                 # --- Vision Mode ---
                 if uploaded_file:
                     image = Image.open(uploaded_file)
@@ -171,40 +169,41 @@ if user_input:
                     """
                     response = model.generate_content([image_prompt, image])
                 
-                # --- Text Mode (Consultative Logic) ---
+                # --- Text Mode (Deep Consultative Logic) ---
                 else:
-                    # 🔧 核心修改：顾问式 Prompt
+                    # 🔧 核心修改：加入了 Deep Dive 专家提问逻辑
                     text_prompt = f"""
-                    ACT AS: Senior Scientific Consultant for iHisto.
+                    ACT AS: A Senior Scientific Consultant for iHisto with 20+ years of experience in histology, IHC, and Multiplex IF.
                     
-                    CURRENT CONVERSATION HISTORY:
+                    CURRENT HISTORY:
                     {conversation_history}
                     
-                    USER'S NEW INPUT: "{user_input}"
+                    USER INPUT: "{user_input}"
                     
-                    YOUR GOAL: Design a perfect experiment, BUT DO NOT generate the final report immediately unless you have all details.
+                    YOUR GOAL: Conduct a "Technical Deep Dive" before proposing a solution. You must ensure the experiment is feasible and high-quality.
                     
-                    LOGIC FLOW (Follow Strictly):
+                    INSTRUCTIONS:
                     
                     PHASE 1: GREETING & INTENT
-                    - If input is "Hello", greet and ask what they are working on.
+                    - If "Hello", greet professionally and ask about their specific project/target.
                     
-                    PHASE 2: DISCOVERY (The Interview)
-                    - If user mentions a broad topic (e.g., "Lung cancer"), DO NOT write a report yet.
-                    - CHECK for missing details: Species (Human/Mouse)? Sample Type (FFPE/Frozen)? Specific Markers?
-                    - ACTION: Ask clarifying questions to narrow down the scope.
-                    - Example: "Great. To design the best panel, are you working with Human or Mouse tissue? Do you have specific markers in mind?"
+                    PHASE 2: THE DEEP DIVE INTERVIEW (Crucial!)
+                    - DO NOT just ask "Human or Mouse?".
+                    - Ask **Critical Risk Questions** based on the topic:
+                      - IF **Phospho-proteins**: Ask about ischemia time and phosphatase inhibitors.
+                      - IF **IHC/Antibodies**: Ask about low-expression targets, previous failures, or if they need Signal Amplification (TSA).
+                      - IF **Multiplex/IF**: Ask about co-localization needs, steric hindrance, or autofluorescence issues (e.g., in lung/skin tissue).
+                      - IF **Quantitative Analysis**: Ask if they need simple cell counts vs. H-Score vs. spatial distance analysis.
                     
-                    PHASE 3: CONFIRMATION
-                    - If user provides details, summarize them and ASK: "Do you have any other specific requirements, or shall I proceed with the formal proposal?"
+                    - **Rule**: Ask only 2-3 most critical questions at a time. Do not overwhelm the user.
+                    - Tone: "To ensure the best staining quality for [Target], I need to check..."
                     
-                    PHASE 4: REPORT GENERATION (Final Step)
-                    - ONLY IF the user says "Go ahead", "Yes", "Create report", or if the conversation history shows all details are clear.
-                    - ACTION: Generate the **Formal Scientific Proposal**.
-                    - Structure: ### Title, 1. Target Biology, 2. Method Selection, 3. Recommended Antibodies (Cite sources), 4. iHisto Service Link.
-                    - No "To/From" headers.
+                    PHASE 3: REPORT GENERATION
+                    - ONLY generate the formal proposal when you have gathered technical details or if the user says "Go ahead".
+                    - Format: ### Title, 1. Biology, 2. Optimized Method, 3. Antibodies (with Citations), 4. iHisto Service Link.
+                    - NO "To/From" headers.
                     
-                    OUTPUT: Strictly in English. Professional tone.
+                    OUTPUT: Strictly in English. Professional, Insightful, Expert.
                     """
                     response = model.generate_content(text_prompt)
 
