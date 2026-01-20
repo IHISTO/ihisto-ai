@@ -1,0 +1,187 @@
+Product/Service List,,,,,
+iHisto Inc,,,,,
+,,,,,
+Product/Service full name,Type,Memo/Description,Sales price,Purchase price,Quantity on hand
+AI Training for Tissue Classifier,Service,"Smart ROI selection?€?focus only where it matters. Our experts and AI tools pinpoint the key tissue regions for faster, more reliable analysis.",115,,
+"Antibody Validation:Antibody IF validation  per target (advance plan, Ab provided by Client) (Leica Bond Rx)",Service,"Antibody IF validation (Advance plan) (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by Client
+Including Digital scanning","1,403.00",,
+"Antibody Validation:Antibody IF validation  per target (advance plan, Ab provided by iHisto) (Leica Bond Rx)",Service,"Antibody IF validation (Advance plan) (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by iHisto
+Including Digital scanning","1,748.00",,
+"Antibody Validation:Antibody IF validation per target (basic plan, Ab provided by Client) (Leica Bond Rx)",Service,"Antibody IF validation (basic plan) (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by Client","1,150.00",,
+"Antibody Validation:Antibody IF validation per target (basic plan, Ab provided by iHisto) (Leica Bond Rx)",Service,"Antibody IF validation (basic plan) (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by iHisto","1,495.00",,
+"Antibody Validation:Antibody IF validation per target (premium plan, Ab provided by Client) (Leica Bond Rx)",Service,"Antibody IF validation (premium plan) (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by Client
+Including Digital scanning and Images Quantitative","1,863.00",,
+"Antibody Validation:Antibody IF validation per target (premium plan, Ab provided by iHisto) (Leica Bond Rx)",Service,"Antibody IF validation (premium plan) (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by iHisto
+Including Digital scanning and Images Quantitative","2,208.00",,
+"Antibody Validation:Antibody--IHC validation (advance plan, Ab provided by Client) (Leica Bond Rx)",Service,"Antibody IHC validation advance plan (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by Client
+Including Digital scanning","1,403.00",,
+"Antibody Validation:Antibody--IHC validation (advance plan, Ab provided by iHisto) (Leica Bond Rx)",Service,"Antibody IHC validation advance plan (Leica Bond Rx)
+??? pH6 retrieval buffer???5 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???5 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by iHisto
+Including Digital scanning","1,748.00",,
+"Antibody Validation:Antibody--IHC validation (basic plan, Ab provided by Client) (Leica Bond Rx)",Service,"Antibody IHC validation basic plan (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by Client","1,150.00",,
+"Antibody Validation:Antibody--IHC validation (basic plan, Ab provided by iHisto) (Leica Bond Rx)",Service,"Antibody IHC validation basic plan (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by iHisto","1,495.00",,
+"Antibody Validation:Antibody--IHC validation (premium plan, Ab provided by Client) (Leica Bond Rx)",Service,"Antibody IHC validation premium plan (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by Client
+Including Digital scanning and Images Quantitative","1,863.00",,
+"Antibody Validation:Antibody--IHC validation (premium plan, Ab provided by iHisto) (Leica Bond Rx)",Service,"Antibody IHC validation premium plan (Leica Bond Rx)
+??? pH6 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+??? pH9 retrieval buffer???4 difference Ab concentration plus 1 negative control (2 repeats)
+Ab provided by iHisto
+Including Digital scanning and Images Quantitative","2,208.00",,
+CISH (ACD kit),Service,"On Leica Bond RX staining, including Pos/Neg probes, reagents and whole slide imaging but excluding target probes, the new protocol must first undergo a verification plan.",747.5,,
+CISH (HCR kit),Service,"On Leica Bond RX staining, including Pos/Neg probes, reagents and whole slide imaging but excluding target probes, the new protocol must first undergo a verification plan.",460,,
+CISH Validation plan (ACD kit),Service,"On Leica Bond RX staining, including pos/Neg probes, reagents and whole slide imaging but excluding target probes. Client need to provide Target probes and a positive sample.","2,990.00",,
+CISH Validation plan (HCR kit),Service,"On Leica Bond RX staining, including Pos/Neg probes, reagents and whole slide imaging but excluding target probes. Client need to provide Target probes and a positive sample.","1,840.00",,
+Customized Staining:IHC + PAS Staining,Service,Service--Immunohistochemistry staining plus PAS staining-per slide,63,,
+Customized Staining:Tunel+2-plex IF staining,Service,Tunel staining plus 2-plex immunofluorescence staining,161,,
+Customized Staining:Tunel+SIF staining,Service,Tunel staining plus Single immunofluorescence staining,115,,
+FISH (ACD kit),Service,"On Leica Bond RX staining, Up to DAPI+3 colors (520,570 and 650). Including Pos/Neg probes, reagents, and whole slide imaging but excluding target probes, the new protocol must first undergo a verification plan.",805,,
+FISH Validation plan (ACD kit),Service,"On Leica Bond RX staining, including pos/Neg probes, reagents and whole slide imaging but excluding target probes. Client need to provide target probes and a positive sample.",inquire,,
+Fresh Frozen Tissue Preparation (for Quintara),Service,"Including 2 slides of Cryosection ,H&E staining and 40x whole slide imaging following 10X Geonomics Handbook CG000804)",115,,
+GLP Study,Service,"Upgrade to GLP Grade:
+The GLP study includes a dedicated study plan, ongoing Quality Assurance (QA) review, and a final study report prepared in full compliance with FDA Good Laboratory Practice regulations (21 CFR Part 58).",inquire,,
+Molecular Pathology:2-plex IF staining,Service,Service--2-plex immunofluorescence Staining,92,,
+Molecular Pathology:2-plex IF staining (Leica Bond Rx),Service,"Service--2-plex immunofluorescence Staining
+(Leica Bond Rx)",115,,
+Molecular Pathology:2-plex IHC Staining,Service,Service--2-plex Immunohistochemistry staining-per slide,92,,
+Molecular Pathology:2-plex IHC Staining (Leica Bond Rx),Service,"Service--2-plex Immunohistochemistry staining-per slide
+(Leica Bond Rx)",115,,
+Molecular Pathology:3-plex IF staining,Service,Service--3-plex immunofluorescence Staining,138,,
+Molecular Pathology:3-plex IF staining (Leica Bond Rx),Service,"Service--3-plex immunofluorescence Staining
+(Leica Bond Rx)",172.5,,
+Molecular Pathology:4-plex IF staining,Service,Service--4-plex immunofluorescence Staining,184,,
+Molecular Pathology:4-plex IF staining (Leica Bond Rx),Service,"Service--4-plex immunofluorescence Staining
+(Leica Bond Rx)",230,,
+Molecular Pathology:5-plex IF staining,Service,Service--5-plex immunofluorescence Staining,230,,
+Molecular Pathology:5-plex IF staining (Leica Bond Rx),Service,"Service--5-plex immunofluorescence Staining
+(Leica Bond Rx)",287.5,,
+Molecular Pathology:6-plex IF staining,Service,Service--6-plex immunofluorescence Staining,276,,
+Molecular Pathology:6-plex IF staining - customized panel,Service,"Step 1: Antibody Sensitivity and Specificity Validation through Immunohistochemistry (IHC) - DAB Method ($2,300)
+
+Step 2: Fluorophore Staining Order Validation with Repeat Retrieval ($6,900)
+
+Step 3: Antibody Combination Validation ($575)
+
+Step 4: Sample Staining Validation ($1,725)","11,500.00",,
+Molecular Pathology:6-plex IF staining (Leica Bond Rx),Service,"Service--6-plex immunofluorescence Staining
+(Leica Bond Rx)",345,,
+Molecular Pathology:Ab provided by iHisto,Service,Service--Ab provided by iHisto--per antibody,17,,
+Molecular Pathology:SIF staining,Service,Service--Single immunofluorescence staining--per slide,46,,
+Molecular Pathology:SIF staining (Leica Bond Rx),Service,"Service--Single immunofluorescence staining--per slide
+(Leica Bond Rx)",57.5,,
+Molecular Pathology:Single IHC Staining,Service,Service--Immunohistochemistry staining-per slide,46,,
+Molecular Pathology:Single IHC Staining (Leica Bond Rx),Service,"Service--Immunohistochemistry staining-per slide
+(Leica Bond Rx)",57.5,,
+Molecular Pathology:TSA-based Multiplex Immunofluorescence [IF] staining,Service,Service--Tyramide Signal Amplification,11.5,,
+Molecular Pathology:TUNEL staining (Fluorescence/DAB),Service,Service--Tunel staining (Fluorescence/DAB),69,,
+Others:100 pcs slide box,Service,100 pcs slides box (Return the slide box to receive a credit on your next quote.),17,,
+Others:50pcs slide box,Service,50 pcs slides box (Return the slide box to receive a credit on your next quote.),11.5,,
+Others:Antibody purchasing,Service,,inquire,,
+Others:credit card processing fee,Service,credit card payment fee--2.9%,2.90%,,
+Others:De-Coverslipping,Service,(De-Coverslipping Slides),6,,
+Others:discount,Service,discount,inquire,,
+Others:Handling fees,Service,"A handling fee is a charge applied to cover the administrative, packaging, and processing costs associated with preparing and delivering an order. This fee helps ensure that materials are handled, packaged, and processed with care, maintaining quality and efficiency in fulfillment.",57.5,,
+Others:Positive control slide (IHC/IF),Service,immunohistochemistry positive control slide,23,,
+Others:Positive control (special stain),Service,Positive control for special stain,11.5,,
+Others:Shipping fee,Service,Dry ice only. No shipping charge if dry ice is not required.,100,,
+Pathology Report:Pathology report,Service,Pathology report,inquire,,
+Quantitative Pathology:Whole slide image quantification,Service,"Whole slide image quantification-per parameter
+(Halo software)",23,,
+Routine Histology:H&E Staining,Service,Service--H&E staining-per slide,6,,
+Routine Histology:Special (group1),Service,"Service--Special staining--per slide
+(Alcian blue, Alcian blue+PAS, Masson's Trichrome, Nissl's, Oil red O, PAS, Safranin O/Fast green, Sirius red, Toluidine blue stain)",13,,
+Routine Histology:Special (group2),Service,"Service--Special staining--per slide
+Gram Micro-Organisms, Luxol Fast Blue, Iron Stain Kit (Prussian Blue Stain), Verhoeff Van Gieson/EVG stain, Colloidal Iron Stain (Mucin Stain), Copper Stain, Grocott Methenamine Silver (GMS) Stain, Giemsa Stain (May-Grunwald)",19,,
+Routine Histology:Special (group3),Service,"Service--Special staining--per slide
+(Movat Pentachrome stain, Fontana-Masson Stain (Melanin Stain), Trap stain)",38,,
+Routine Histology:Special (group4),Service,"Service--Special staining--per slide
+(Golgi stain (include 30 layer Z-stack scanning image))",253,,
+Sample Storage,Service,"Sample Storage: $1 per wet tissue, block, or slide with temperature and humidity-controlled conditions.",1,,
+Spatial Biology:Spatial Biology Panels - Antibody conjugate service,Service,"Antibody conjugate service for Akoya PhenoCycler System, sufficient for staining 25 slides.
+(Not include antibody)","1,725.00",,
+Spatial Biology:Spatial Biology Panels - Customized panel,Service,Knowing the origin of the tumor is essential in determining the type ?€? epithelial or mesenchymal and the behavior of the tumor.,inquire,,
+Spatial Biology:Spatial Biology Panels - FFPE Mouse Panel- per slide,Service,"Analyzing protein biomarkers through spatial profiling of individual cells is a well-established technique employed by cancer researchers to gain insights into the intricacies of the tumor microenvironment (TME). While this methodology has primarily been designed for human tissue samples, the extensive utilization of mouse models in the field of immuno-oncology (IO) warrants the adaptation of spatial profiling techniques for their application in mice.",inquire,,
+Spatial Biology:Spatial Biology Panels - Immune Activation & Proliferation Module - per slide,Service,Finding new ways of understanding and characterizing immune escape and activation mechanisms of the tumor could lead to the development of new immunotherapies and enhance our understanding of cancer biology.,"3,801.00",,
+Spatial Biology:Spatial Biology Panels - Immune Profiling Core Panel - per slide,Service,Deciphering tumor immune biology begins with determining the status of the immune cells. The immune profiling panel serves as the core panel for spatial discoveries consisting of 15 critical immune protein biomarkers enabling you to characterize the immune system.,"4,183.00",,
+Spatial Biology:Spatial Biology Panels - Lymphocyte Profiling Module - per slide,Service,B-cells and T-cells play a crucial role in immune surveillance by recognizing and targeting tumor cells.,"3,801.00",,
+Spatial Biology:Spatial Biology Panels - Tissue Architecture Module - per slide,Service,Knowing the origin of the tumor is essential in determining the type ?€? epithelial or mesenchymal and the behavior of the tumor.,"3,801.00",,
+Spatial Transcriptomic Slide Preparation,Service,"Spatial Transcriptomic unstained slides X4, H&E stained slide with Whole slide Image X1
+(Fisher Superfrost slides with Nuclease free)",172.5,,
+Spatial Transcriptomics Slide H&E Staining,Service,Spatial Transcriptomic H&E stained slide,23,,
+Tissue Processing:Decalcify,Service,Service--Decalcify-per sample,13,,
+Tissue Processing:FFPE Sectioning,Service,"Service--$7 / 2 sections / slide, additional $3.5 / section
+(with fisher brand Superfrost plus slide)",7,,
+Tissue Processing:FFPE sectioning (RNase-free),Service,Service--FFPE sectioning with Fisher brand Superfrost plus slide/RNase-free Microfuge Tube under RNA-free condition (2 section/slides or scrolls/tube),11.5,,
+Tissue Processing:OCT Sectioning,Service,"Service--Frozen sectioning with Fisher brand Superfrost plus slide ($9/2 sections/slide, additional $4.5 /section)",9,,
+Tissue Processing:OCT Sectioning (RNAse-Free),Service,Service--Frozen ectioning with Fisher brand Superfrost plus slide/RNase-free Microfuge Tube under RNA-free condition (2 section/slides or scrolls/tube),14,,
+Tissue Processing:Processing and embedding (FFPE/OCT),Service,"Service -- Tissue trimming, processing and embedding (FFPE/OCT)",13,,
+Tissue Processing:Tissue Microarray (TMA) - 16~24 core,Service,"Tissue Microarray (TMA) - 16~24 core
+$9.5/core",11,,
+Tissue Processing:Tissue Microarray (TMA) - 25~36 core,Service,"Tissue Microarray (TMA) - 25~36 core
+$9/core",10,,
+Tissue Processing:Tissue Microarray (TMA) - 37~60 core,Service,"Tissue Microarray (TMA) - 37~60 core
+$8.5/core",10,,
+Tissue Processing:Tissue Microarray (TMA) - below 15 core.,Service,"Tissue Microarray (TMA) - below 15 core.
+$10/core",11.5,,
+Urgent Fee:Urgent order fee (Next day),Service,Service--Premium for Urgent experiment £©,total amount X1,,
+Urgent Fee:Urgent order fee (within 5 days),Service,Service--Premium for Urgent experiment £©,total amount X0.5,,
+Whole Slide Imaging:BFscan-large size (41X),Service,"Service--Bright field scanning (Large size 2"" X 3"" , optical magnification 41X, 0.242 um\pixel)--per slide
+Scanner: Pannoramic 1000
+Format: MRXS, SVS",25,,
+Whole Slide Imaging:BFscan-large size (82X),Service,"Service--Bright field scanning (Regular size 2"" X 3"" , optical magnification 82X, 0.121 um\pixel)--per slide
+Scanner: Pannoramic 1000
+Format: MRXS, SVS",76,,
+Whole Slide Imaging:BFscan-regular size (41X),Service,"Service--Bright field scanning (Regular size 1"" X 3"" , optical magnification 41X, 0.242 um\pixel)--per slide
+Scanner: Pannoramic 1000
+Format: MRXS,SVS",13,,
+Whole Slide Imaging:BFscan-regular size (82X),Service,"Service--Bright field scanning (Regular size 1"" X 3"" , optical magnification 82X, 0.121 um\pixel)--per slide
+Scanner: Pannoramic 1000
+Format: MRXS, SVS",38,,
+Whole Slide Imaging:BFscan_TMA-regular size  (41X),Service,"Service--Bright field scanning (Regular size 1"" X 3"" , optical magnification 41X, 0.242 um\pixel)--per slide
+Scanner: Pannoramic 1000
+Format: MRXS,SVS",25,,
+Whole Slide Imaging:BFscan_TMA-large size  (41X) ,Service,"Service--Bright field scanning (Large size 2"" X 3"" , optical magnification 41X, 0.242 um\pixel)--per slide
+Scanner: Pannoramic 1000
+Format: MRXS, SVS",51,,
+Whole Slide Imaging:IF scan (50X),Service,"Service--Fluorescence scanning (Basic resolution: optical magnification 50X, 0.2 um\pixel, DAPI included)--per antibody
+Scanner: PANORAMIC MIDI II",32,,
+Whole Slide Imaging:IF scan (98X),Service,"Service--Fluorescence scanning (advance resolution: optical magnification 98X, 0.1 um\pixel, DAPI included)--per hr
+Scanner: PANORAMIC MIDI II",172.5,,
+Whole Slide Imaging:IF scan_TMA (50X),Service,"Service--Fluorescence scanning (optical magnification 50X, 0.2 um\pixel, DAPI included)--per antibody
+Scanner: PANORAMIC MIDI II",63,,
+TOTAL,,,,,
+,,,,,
+,,,,,
+,,,,,
+" Tuesday, January 20, 2026 08:01 PM GMTZ",,,,,
