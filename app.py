@@ -6,127 +6,118 @@ import json
 import re
 from PIL import Image
 
-# --- 1. 配置与密钥 ---
+# --- 1. 基础配置 ---
 try:
     INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=INTERNAL_API_KEY)
     model = genai.GenerativeModel('gemini-flash-latest')
 except:
-    st.error("⚠️ Key Missing. Please check .streamlit/secrets.toml")
+    st.error("⚠️ 密钥未配置，请检查 .streamlit/secrets.toml")
     st.stop()
 
-# --- 2. 核心：智能数据读取 (Smart Loader) ---
-DATA_DIRS = ["data", "."] 
-# 两个文件名都列在这里，确保能找到
-TARGET_FILENAME = "iHisto Inc_Product_Service List(20260120).csv"
-BACKUP_FILENAME = "iHisto Inc_Product_Service List.csv"
+# --- 2. 核心：简单直接的数据读取 ---
+# 既然文件名确定了，我们就直接读，不再搞复杂的搜索
+FILE_PATH_NEW = "data/iHisto Inc_Product_Service List(20260120).csv"
+FILE_PATH_OLD = "data/iHisto Inc_Product_Service List.csv"
 
 @st.cache_data(show_spinner=False)
-def load_data_final():
-    logs = []
-    found_path = None
-    
-    # [Step 1] 定位文件
-    for d in DATA_DIRS:
-        if os.path.exists(d):
-            files = os.listdir(d)
-            if TARGET_FILENAME in files:
-                found_path = os.path.join(d, TARGET_FILENAME)
-                break 
-            elif BACKUP_FILENAME in files and found_path is None:
-                found_path = os.path.join(d, BACKUP_FILENAME)
-    
-    if not found_path:
-        return None, ["❌ Fatal: CSV file not found."], 0
+def load_data_simple():
+    # 1. 确定文件路径
+    if os.path.exists(FILE_PATH_NEW):
+        target_file = FILE_PATH_NEW
+    elif os.path.exists(FILE_PATH_OLD):
+        target_file = FILE_PATH_OLD
+    else:
+        # 尝试在根目录找
+        if os.path.exists("iHisto Inc_Product_Service List(20260120).csv"):
+            target_file = "iHisto Inc_Product_Service List(20260120).csv"
+        else:
+            return None, "❌ 未找到 CSV 文件", 0
 
-    # [Step 2] 读取内容
+    # 2. 读取数据 (尝试两种标题位置)
     try:
-        # 智能探测：标题在哪一行？
-        header_idx = 0
-        with open(found_path, 'r', encoding='utf-8', errors='replace') as f:
-            lines = f.readlines()
-            for i, line in enumerate(lines[:20]):
-                if "Product/Service full name" in line:
-                    header_idx = i
-                    break
+        # 方案 A: 假设标题在第 1 行 (header=0) -> 针对 20260120 新版
+        df = pd.read_csv(target_file, header=0)
         
-        df = pd.read_csv(found_path, header=header_idx)
+        # 检查是否读对了：看看列名里有没有 "Product" 相关的字
+        # 如果列名不对，说明 header=0 读错了，尝试 header=3
+        cols = str(list(df.columns))
+        if "Product" not in cols and "Service" not in cols:
+            df = pd.read_csv(target_file, header=3) # 方案 B: 旧版格式
         
-        # [Step 3] 解析全部数据
+        # 3. 整理数据文本
         service_text = ""
         count = 0
+        he_found = False
         
-        # 遍历表格的每一行
         for index, row in df.iterrows():
-            name = str(row['Product/Service full name']).strip()
-            price = str(row['Sales price']).strip()
-            desc = str(row['Memo/Description']).strip()
+            # 容错处理：获取列名（防止列名有微小差异）
+            # 找到包含 'Product' 的列作为 Name，包含 'Price' 的列作为 Price
+            col_name = next((c for c in df.columns if 'Product' in str(c) or 'Service' in str(c)), None)
+            col_price = next((c for c in df.columns if 'Price' in str(c) or 'Sales' in str(c)), None)
+            col_desc = next((c for c in df.columns if 'Memo' in str(c) or 'Description' in str(c)), None)
+            
+            if not col_name or not col_price:
+                continue
 
-            if name == 'nan': name = ""
+            name = str(row[col_name]).strip()
+            price = str(row[col_price]).strip()
+            desc = str(row[col_desc]).strip() if col_desc else ""
+
+            if name == 'nan' or not name: continue
             if price == 'nan': price = ""
-            if desc == 'nan': desc = ""
+            
+            # 检查 H&E
+            if "H&E" in name:
+                he_found = True
 
-            # 只要名字不为空，就加入到 AI 的知识库中
-            if name:
-                service_text += f"ITEM: {name} | PRICE: ${price}\nDETAILS: {desc}\n---\n"
-                count += 1
-                
-        logs.append(f"📂 Loaded: {found_path}")
-        return service_text, logs, count
+            service_text += f"ITEM: {name} | PRICE: ${price}\nDETAILS: {desc}\n---\n"
+            count += 1
+            
+        status_msg = f"已加载 {count} 项服务。"
+        if he_found:
+            status_msg += " (✅ H&E 已找到)"
+        else:
+            status_msg += " (❌ H&E 未找到)"
+            
+        return service_text, status_msg, count
 
     except Exception as e:
-        return None, [f"❌ Error: {e}"], 0
+        return None, f"❌ 读取出错: {e}", 0
 
-# 加载数据
-IHISTO_SERVICES, DEBUG_LOGS, TOTAL_COUNT = load_data_final()
+# 执行加载
+IHISTO_SERVICES, STATUS_MSG, TOTAL_COUNT = load_data_simple()
 
-# --- 3. 页面设置 ---
+# --- 3. 页面界面 (恢复简洁版) ---
 st.set_page_config(page_title="iHisto AI", page_icon="🔬")
 
-# 自定义 CSS
-st.markdown("""
-    <style>
-        div[data-testid="stPopover"] { position: fixed; bottom: 28px; left: 760px; z-index: 999; }
-        div[data-testid="stButton"] { position: fixed; bottom: 28px; right: 460px; z-index: 999; }
-        @media (max-width: 800px) {
-            div[data-testid="stPopover"] { left: 5%; bottom: 30px; }
-            div[data-testid="stButton"] { right: 5%; bottom: 30px; }
-        }
-        div[data-testid="stPopover"] > button, div[data-testid="stButton"] > button {
-            border-radius: 50%; width: 44px; height: 44px; border: 1px solid #ddd;
-            background-color: white; color: #2e86de; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 4. 侧边栏 (全量数据监控) ---
+# 侧边栏：只显示最核心的状态
 with st.sidebar:
-    st.title("🛡️ System Status")
-    
+    st.title("系统状态")
     if TOTAL_COUNT > 0:
-        st.success(f"System Ready")
-        st.info(f"📦 Total Services Loaded: {TOTAL_COUNT}")
-        
-        # 🔥 这里可以让您看到所有被读取的服务
-        with st.expander("📜 Check All Services List"):
-            st.text(IHISTO_SERVICES)
+        st.success(STATUS_MSG)
+        # 调试开关
+        if st.checkbox("查看原始数据文本"):
+            st.text_area("Data Preview", IHISTO_SERVICES, height=300)
     else:
-        st.error("❌ No Data Loaded")
-        for log in DEBUG_LOGS:
-            st.text(log)
-    
-    if st.button("🧹 Refresh System"):
+        st.error(STATUS_MSG)
+        
+    if st.button("刷新数据"):
         st.cache_data.clear()
         st.rerun()
 
-# --- 5. 主界面逻辑 ---
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
+# 主标题
+col1, col2 = st.columns([1, 4])
+with col1:
     if os.path.exists("images/color_logo-h.png"):
-        st.image("images/color_logo-h.png", use_container_width=True)
+        st.image("images/color_logo-h.png", width=80)
     else:
-        st.markdown("### iHisto AI Platform")
+        st.write("🔬")
+with col2:
+    st.title("iHisto Scientific Assistant")
+st.markdown("---")
 
+# --- 4. 聊天逻辑 ---
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify your Name, Email, and Company."}]
 
@@ -134,31 +125,23 @@ if "client_info" not in st.session_state:
     st.session_state.client_info = {"name": None, "email": None, "company": None}
     st.session_state.is_identified = False
 
+# 显示历史消息
 for msg in st.session_state.messages:
     avatar = "images/new_logo.png" if msg["role"] == "assistant" and os.path.exists("images/new_logo.png") else None
     st.chat_message(msg["role"], avatar=avatar).markdown(msg["content"])
 
-popover = st.popover("➕")
-with popover:
-    st.markdown("### Upload Image")
-    uploaded_file = st.file_uploader("File", label_visibility="collapsed")
-    if uploaded_file: st.success("Uploaded!")
+# 文件上传区 (简洁版，放在侧边栏或者是单独区域)
+with st.sidebar:
+    uploaded_file = st.file_uploader("上传图片 (可选)", type=["png", "jpg", "jpeg"])
 
-if st.button("🔄"):
-    if st.session_state.is_identified:
-         st.session_state.messages = [{"role": "assistant", "content": f"Hi {st.session_state.client_info['name']}, chat cleared."}]
-    else:
-         st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify Name, Email, Company."}]
-         st.session_state.client_info = {"name": None, "email": None, "company": None}
-         st.session_state.is_identified = False
-    st.rerun()
-
-user_input = st.chat_input("How can I help you?")
+# 聊天输入框
+user_input = st.chat_input("请输入您的问题...")
 
 if user_input:
     st.chat_message("user").markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
+    # 1. 身份验证逻辑
     if not st.session_state.is_identified:
         try:
             info_str = json.dumps(st.session_state.client_info)
@@ -169,7 +152,7 @@ if user_input:
                 st.session_state.client_info = data
                 if all(data.values()):
                     st.session_state.is_identified = True
-                    st.session_state.messages.append({"role": "assistant", "content": f"Thanks {data['name']}! You are verified. ✅"})
+                    st.session_state.messages.append({"role": "assistant", "content": f"Thanks {data['name']}! Verified. ✅"})
                     st.rerun()
                 else:
                     st.session_state.messages.append({"role": "assistant", "content": "I still need your full details (Name, Email, Company)."})
@@ -177,21 +160,21 @@ if user_input:
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
         except: st.error("Verification Error")
     
+    # 2. 业务咨询逻辑
     else:
-        # 🔥 通用版 Prompt：不再只盯着 H&E
         prompt = f"""
         ACT AS: iHisto Scientific Consultant.
         
-        OFFICIAL PRICE DATA (Full Database):
+        DATABASE:
         {IHISTO_SERVICES}
         
         USER QUERY: "{user_input}"
         
         RULES:
-        1. Search the ENTIRE PRICE DATA for the service requested by the user.
-        2. Use the EXACT price listed in the data.
-        3. If the service is not found, verify if it might be under a slightly different name.
-        4. No volume discounts unless listed.
+        1. Search the DATABASE for the requested service.
+        2. Quote the EXACT price from the database.
+        3. For "H&E", look for "Routine Histology:H&E Staining".
+        4. No guessing.
         """
         
         if uploaded_file:
