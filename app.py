@@ -6,48 +6,42 @@ import json
 import re
 from PIL import Image
 
-# --- 1. Configuration ---
+# --- 1. 配置与密钥 ---
 try:
     INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=INTERNAL_API_KEY)
     model = genai.GenerativeModel('gemini-flash-latest')
 except:
-    st.error("⚠️ Key Missing. Check secrets.toml")
+    st.error("⚠️ Key Missing. Please check .streamlit/secrets.toml")
     st.stop()
 
-# --- 2. ⚡️ 极速透明数据加载器 ---
+# --- 2. 核心：智能数据读取 (Smart Loader) ---
 DATA_DIRS = ["data", "."] 
+# 两个文件名都列在这里，确保能找到
 TARGET_FILENAME = "iHisto Inc_Product_Service List(20260120).csv"
 BACKUP_FILENAME = "iHisto Inc_Product_Service List.csv"
 
-def load_data_debug():
+@st.cache_data(show_spinner=False)
+def load_data_final():
     logs = []
     found_path = None
     
-    # 1. 🔍 侦查阶段
-    logs.append("--- File System Check ---")
+    # [Step 1] 定位文件
     for d in DATA_DIRS:
         if os.path.exists(d):
             files = os.listdir(d)
-            # 过滤出csv文件
-            csvs = [f for f in files if f.endswith('.csv')]
-            logs.append(f"📁 Folder '{d}': Found {csvs}")
-            
             if TARGET_FILENAME in files:
                 found_path = os.path.join(d, TARGET_FILENAME)
+                break 
             elif BACKUP_FILENAME in files and found_path is None:
                 found_path = os.path.join(d, BACKUP_FILENAME)
-        else:
-            logs.append(f"❌ Folder '{d}' does not exist.")
-            
+    
     if not found_path:
-        return None, logs, "❌ ERROR: Target CSV not found."
+        return None, ["❌ Fatal: CSV file not found."], 0
 
-    # 2. 📖 读取阶段
+    # [Step 2] 读取内容
     try:
-        logs.append(f"👉 Loading: {found_path}")
-        
-        # 智能找标题
+        # 智能探测：标题在哪一行？
         header_idx = 0
         with open(found_path, 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
@@ -56,15 +50,13 @@ def load_data_debug():
                     header_idx = i
                     break
         
-        logs.append(f"📏 Header Row: {header_idx + 1}")
-        
         df = pd.read_csv(found_path, header=header_idx)
         
-        # 3. 解析阶段
+        # [Step 3] 解析全部数据
         service_text = ""
-        he_status = "❌ H&E MISSING"
         count = 0
         
+        # 遍历表格的每一行
         for index, row in df.iterrows():
             name = str(row['Product/Service full name']).strip()
             price = str(row['Sales price']).strip()
@@ -74,27 +66,24 @@ def load_data_debug():
             if price == 'nan': price = ""
             if desc == 'nan': desc = ""
 
-            # 🔎 重点监控 H&E
-            if "H&E" in name and "Staining" in name:
-                he_status = f"✅ Found: '{name}' -> ${price}"
-
+            # 只要名字不为空，就加入到 AI 的知识库中
             if name:
                 service_text += f"ITEM: {name} | PRICE: ${price}\nDETAILS: {desc}\n---\n"
                 count += 1
                 
-        logs.append(f"📦 Loaded {count} items.")
-        return service_text, logs, he_status
+        logs.append(f"📂 Loaded: {found_path}")
+        return service_text, logs, count
 
     except Exception as e:
-        return None, logs, f"❌ Error: {e}"
+        return None, [f"❌ Error: {e}"], 0
 
-# 执行加载
-IHISTO_SERVICES, DEBUG_LOGS, HE_STATUS = load_data_debug()
+# 加载数据
+IHISTO_SERVICES, DEBUG_LOGS, TOTAL_COUNT = load_data_final()
 
-# --- Page Setup ---
-st.set_page_config(page_title="iHisto Debug", page_icon="🛠️")
+# --- 3. 页面设置 ---
+st.set_page_config(page_title="iHisto AI", page_icon="🔬")
 
-# CSS
+# 自定义 CSS
 st.markdown("""
     <style>
         div[data-testid="stPopover"] { position: fixed; bottom: 28px; left: 760px; z-index: 999; }
@@ -110,34 +99,36 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Sidebar (真相大白区) ---
+# --- 4. 侧边栏 (全量数据监控) ---
 with st.sidebar:
-    st.title("🕵️‍♀️ Sherlock Debugger")
+    st.title("🛡️ System Status")
     
-    if "✅" in HE_STATUS:
-        st.success("H&E Price Loaded!")
-        st.info(HE_STATUS) 
+    if TOTAL_COUNT > 0:
+        st.success(f"System Ready")
+        st.info(f"📦 Total Services Loaded: {TOTAL_COUNT}")
+        
+        # 🔥 这里可以让您看到所有被读取的服务
+        with st.expander("📜 Check All Services List"):
+            st.text(IHISTO_SERVICES)
     else:
-        st.error("H&E Price Missing!")
-    
-    with st.expander("View Logs"):
+        st.error("❌ No Data Loaded")
         for log in DEBUG_LOGS:
             st.text(log)
-            
-    if st.button("🧹 Reset"):
+    
+    if st.button("🧹 Refresh System"):
         st.cache_data.clear()
         st.rerun()
 
-# --- Main Logic ---
+# --- 5. 主界面逻辑 ---
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     if os.path.exists("images/color_logo-h.png"):
         st.image("images/color_logo-h.png", use_container_width=True)
     else:
-        st.markdown("### iHisto AI")
+        st.markdown("### iHisto AI Platform")
 
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify Name, Email, Company."}]
+    st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify your Name, Email, and Company."}]
 
 if "client_info" not in st.session_state:
     st.session_state.client_info = {"name": None, "email": None, "company": None}
@@ -149,20 +140,20 @@ for msg in st.session_state.messages:
 
 popover = st.popover("➕")
 with popover:
-    st.markdown("### Upload")
+    st.markdown("### Upload Image")
     uploaded_file = st.file_uploader("File", label_visibility="collapsed")
     if uploaded_file: st.success("Uploaded!")
 
 if st.button("🔄"):
     if st.session_state.is_identified:
-         st.session_state.messages = [{"role": "assistant", "content": "Chat cleared."}]
+         st.session_state.messages = [{"role": "assistant", "content": f"Hi {st.session_state.client_info['name']}, chat cleared."}]
     else:
          st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify Name, Email, Company."}]
          st.session_state.client_info = {"name": None, "email": None, "company": None}
          st.session_state.is_identified = False
     st.rerun()
 
-user_input = st.chat_input("Ask me...")
+user_input = st.chat_input("How can I help you?")
 
 if user_input:
     st.chat_message("user").markdown(user_input)
@@ -171,31 +162,38 @@ if user_input:
     if not st.session_state.is_identified:
         try:
             info_str = json.dumps(st.session_state.client_info)
-            resp = model.generate_content(f"Extract Name,Email,Company from '{user_input}'. Current: {info_str}. Output JSON: ###DATA: {{...}}###")
+            resp = model.generate_content(f"Extract Name,Email,Company from '{user_input}'. Current info: {info_str}. Return JSON only: ###DATA: {{...}}###")
             match = re.search(r'###DATA: ({.*?})###', resp.text)
             if match:
                 data = json.loads(match.group(1))
                 st.session_state.client_info = data
                 if all(data.values()):
                     st.session_state.is_identified = True
-                    st.session_state.messages.append({"role": "assistant", "content": f"Thanks {data['name']}! Verified. ✅"})
+                    st.session_state.messages.append({"role": "assistant", "content": f"Thanks {data['name']}! You are verified. ✅"})
                     st.rerun()
                 else:
-                    st.session_state.messages.append({"role": "assistant", "content": "I still need details."})
+                    st.session_state.messages.append({"role": "assistant", "content": "I still need your full details (Name, Email, Company)."})
             else:
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
-        except: st.error("Error")
+        except: st.error("Verification Error")
+    
     else:
+        # 🔥 通用版 Prompt：不再只盯着 H&E
         prompt = f"""
-        ACT AS: iHisto Consultant.
-        DATA:
+        ACT AS: iHisto Scientific Consultant.
+        
+        OFFICIAL PRICE DATA (Full Database):
         {IHISTO_SERVICES}
-        USER: "{user_input}"
+        
+        USER QUERY: "{user_input}"
+        
         RULES:
-        1. STRICTLY use DATA prices.
-        2. H&E = "Routine Histology:H&E Staining".
-        3. IF DATA says $6.00, SAY $6.00.
+        1. Search the ENTIRE PRICE DATA for the service requested by the user.
+        2. Use the EXACT price listed in the data.
+        3. If the service is not found, verify if it might be under a slightly different name.
+        4. No volume discounts unless listed.
         """
+        
         if uploaded_file:
             img = Image.open(uploaded_file)
             resp = model.generate_content([prompt, img], stream=True)
