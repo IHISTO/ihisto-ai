@@ -7,60 +7,105 @@ import re
 import json
 
 # --- 1. Configuration & Setup ---
-
-# 🔐 安全模式：自动从 Streamlit Secrets 读取密钥
 try:
     INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    st.error("⚠️ 未找到密钥！请确保配置了 .streamlit/secrets.toml")
+    st.error("⚠️ Key Missing: Please check .streamlit/secrets.toml")
     st.stop()
 
-# --- 2. 📂 Load Data ---
-SERVICES_FILE = "data/iHisto Inc_Product_Service List.csv"
+# --- 2. 📂 强力智能数据加载器 (Smart Data Loader) ---
+# 🔥 这里就是您说的“修改这两个”：双保险机制
+POSSIBLE_FILES = [
+    "data/iHisto Inc_Product_Service List(20260120).csv", # 优先找新文件
+    "data/iHisto Inc_Product_Service List.csv",           # 找不到新文件就找旧的
+]
 TOP_LOGO_FILENAME = "images/color_logo-h.png" 
 AVATAR_FILENAME = "images/new_logo.png"
 
 @st.cache_data
-def load_services_from_csv():
-    if not os.path.exists(SERVICES_FILE):
-        return "⚠️ Service list CSV not found in data folder."
+def load_services_smart():
+    # 1. 自动寻找哪个文件是存在的
+    found_file = None
+    for f in POSSIBLE_FILES:
+        if os.path.exists(f):
+            found_file = f
+            break
+    
+    if not found_file:
+        return None, "❌ ERROR: No CSV file found in 'data' folder. Please check file name."
+
     try:
-        df = pd.read_csv(SERVICES_FILE, header=2)
+        # 2. 智能锁定标题行：不管空几行，自动找 "Product/Service full name"
+        header_row_index = -1
+        # 使用 open 读取原始文本，避免 pandas 格式报错
+        with open(found_file, 'r', encoding='utf-8', errors='replace') as f:
+            lines = f.readlines()
+            for i, line in enumerate(lines[:20]): # 只扫前20行，足够了
+                if "Product/Service full name" in line:
+                    header_row_index = i
+                    break
+        
+        if header_row_index == -1:
+            return None, "❌ ERROR: Could not find 'Product/Service full name' header row."
+
+        # 3. 用找到的正确行号读取数据
+        df = pd.read_csv(found_file, header=header_row_index)
+        
+        # 4. 格式化数据给 AI
         service_text = ""
+        he_check_msg = "❌ H&E Not Found" # 默认未找到
+        item_count = 0
+        
         current_name = ""
-        current_desc = ""
         current_price = ""
+        current_desc = ""
+
         for index, row in df.iterrows():
             name = str(row['Product/Service full name']).strip()
-            desc = str(row['Memo/Description']).strip()
             price = str(row['Sales price']).strip()
-            if name == 'nan': name = ""
-            if desc == 'nan': desc = ""
-            if price == 'nan': price = ""
-            if name:
-                if current_name:
-                    service_text += f"[{current_name}]\n- Price: ${current_price}\n"
-                    if current_desc: service_text += f"- Details: {current_desc}\n"
-                    service_text += "\n"
-                current_name = name
-                current_desc = desc
-                current_price = price if price else "Inquire"
-            else:
-                if current_name and desc: current_desc += f"\n{desc}"
-        if current_name:
-            service_text += f"[{current_name}]\n- Price: ${current_price}\n"
-            if current_desc: service_text += f"- Details: {current_desc}\n"
-            service_text += "\n"
-        return service_text
-    except Exception as e:
-        return f"Error parsing CSV: {e}"
+            desc = str(row['Memo/Description']).strip()
 
-IHISTO_SERVICES = load_services_from_csv()
+            # 清理无效数据
+            if name == 'nan': name = ""
+            if price == 'nan': price = ""
+            if desc == 'nan': desc = ""
+
+            # 🔥 专门监控 H&E 的价格，方便您在侧边栏检查
+            if "H&E" in name and "Staining" in name:
+                he_check_msg = f"✅ Found: '{name}' -> ${price}"
+
+            if name:
+                # 写入上一条
+                if current_name:
+                    service_text += f"ITEM: {current_name} | PRICE: ${current_price}\nDETAILS: {current_desc}\n---\n"
+                
+                current_name = name
+                current_price = price if price else "Inquire"
+                current_desc = desc
+                item_count += 1
+            else:
+                # 拼接多行描述
+                if current_name and desc:
+                    current_desc += f" {desc}"
+        
+        # 写入最后一条
+        if current_name:
+            service_text += f"ITEM: {current_name} | PRICE: ${current_price}\nDETAILS: {current_desc}\n---\n"
+            item_count += 1
+            
+        debug_info = f"📂 Using File: {found_file}\n📦 Items Loaded: {item_count}\n🔎 {he_check_msg}"
+        return service_text, debug_info
+
+    except Exception as e:
+        return None, f"❌ Python Error: {e}"
+
+# 加载数据
+IHISTO_SERVICES, DEBUG_MSG = load_services_smart()
 
 # Page Config
 st.set_page_config(page_title="iHisto AI Platform", page_icon="🔬", layout="centered")
 
-# CSS Styling (最终修复：手机端按比例适配)
+# CSS Styling (保持 760px / 460px)
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -69,59 +114,24 @@ st.markdown("""
         .stChatInput { padding-bottom: 20px; }
         .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
-        /* =============================================
-           1. 电脑端 (Desktop) - 保持固定在角落
-           ============================================= */
-        
-        /* 左侧 Upload 按钮 (+) */
+        /* Desktop Buttons */
         div[data-testid="stPopover"] {
-            position: fixed; 
-            bottom: 28px; 
-            left: 760px;  /* 电脑上距离左边 20px */
-            margin-left: 0; 
-            width: auto !important; 
-            min-width: unset !important; 
-            z-index: 1000000;
+            position: fixed; bottom: 28px; left: 760px; margin-left: 0;
+            width: auto !important; min-width: unset !important; z-index: 1000000;
             background-color: transparent !important;
         }
-        
-        /* 右侧 New Chat 按钮 (🔄) */
         div[data-testid="stButton"] {
-            position: fixed; 
-            bottom: 28px; 
-            right: 460px; /* 电脑上距离右边 20px */
-            left: auto;
-            margin-left: 0;
-            width: auto !important; 
-            min-width: unset !important; 
-            z-index: 1000000;
+            position: fixed; bottom: 28px; right: 460px; left: auto; margin-left: 0;
+            width: auto !important; min-width: unset !important; z-index: 1000000;
             background-color: transparent !important;
         }
 
-        /* =============================================
-           2. 手机端 (Mobile) - 按比例缩放 (Proportional)
-           ============================================= */
-        
+        /* Mobile Buttons */
         @media (max-width: 800px) {
-            /* 左侧 (+) */
-            div[data-testid="stPopover"] {
-                left: 5%;        /* 【关键】距离左边 5% (按比例) */
-                bottom: 85px;    /* 高度：稍微抬高，避开手机输入法 */
-                margin-left: 0;
-            }
-            
-            /* 右侧 (🔄) */
-            div[data-testid="stButton"] {
-                right: 5%;       /* 【关键】距离右边 5% (按比例) */
-                left: auto;      /* 必须清除左定位 */
-                bottom: 85px;    /* 高度保持一致 */
-                margin-left: 0;
-            }
+            div[data-testid="stPopover"] { left: 5%; bottom: 30px; }
+            div[data-testid="stButton"] { right: 5%; left: auto; bottom: 30px; }
         }
 
-        /* =============================================
-           3. 按钮美化 (通用)
-           ============================================= */
         div[data-testid="stPopover"] > button, div[data-testid="stButton"] > button {
             border-radius: 50%; width: 44px; height: 44px; border: 1px solid #ddd;
             background-color: #ffffff; color: #2e86de; font-size: 20px;
@@ -152,7 +162,6 @@ except Exception as e:
     st.error(f"Connection Failed: {e}")
     st.stop()
 
-# 默认的开场白（用于未识别用户）
 INITIAL_MESSAGE = {
     "role": "assistant",
     "content": "Welcome to iHisto! To better assist you with your scientific needs, **please let me know your Name, Email, and Organization/Company.**"
@@ -180,6 +189,17 @@ with st.sidebar:
         st.text_input("Company (Draft)", value=st.session_state.client_info["company"] or "", disabled=True)
         st.info("AI features locked.")
 
+    # 🔥🔥 管理员监控面板 (关键) 🔥🔥
+    st.divider()
+    st.markdown("### 🛠️ Data Debugger")
+    if "❌" in DEBUG_MSG:
+        st.error(DEBUG_MSG) # 如果出错，这里会变红
+    else:
+        st.success(DEBUG_MSG) # 如果成功，显示绿色，并显示 H&E 价格
+        
+    with st.expander("Show Full Loaded Data"):
+        st.text_area("Content sent to AI:", value=IHISTO_SERVICES if IHISTO_SERVICES else "No data", height=200)
+
 # --- 6. Chat Display ---
 for message in st.session_state.messages:
     current_avatar = AVATAR_FILENAME if message["role"] == "assistant" else None
@@ -187,7 +207,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=current_avatar):
         st.markdown(message["content"])
 
-# --- 7. Buttons (Control Center) ---
+# --- 7. Buttons ---
 popover = st.popover("➕", help="Upload Image")
 with popover:
     st.markdown("### 📂 Upload Image")
@@ -196,22 +216,17 @@ with popover:
         st.success("Image Ready!")
         st.image(uploaded_file, width=150)
 
-# 🔥 关键修改：智能重置按钮
 if st.button("🔄", help="Start a New Chat"):
-    # 如果已经识别了身份，只清空聊天，保留身份
     if st.session_state.is_identified:
         user_name = st.session_state.client_info['name']
         st.session_state.messages = [{
             "role": "assistant",
             "content": f"Hi **{user_name}**, I've cleared the chat history for a new topic. \n\nI still have your details on file. How can I help with your next inquiry?"
         }]
-        # 注意：这里我们没有重置 client_info
     else:
-        # 如果还没识别，就彻底重置
         st.session_state.messages = [INITIAL_MESSAGE]
         st.session_state.client_info = {"name": None, "email": None, "company": None}
         st.session_state.is_identified = False
-    
     st.rerun()
 
 if uploaded_file:
@@ -225,7 +240,6 @@ if user_input:
         st.markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Memory
     conversation_history = ""
     for msg in st.session_state.messages[-12:]: 
         conversation_history += f"{msg['role'].upper()}: {msg['content']}\n"
@@ -279,24 +293,40 @@ if user_input:
                     image_prompt = f"""
                     ACT AS: Senior Pathologist for iHisto.
                     CLIENT: {st.session_state.client_info['name']} ({st.session_state.client_info['company']}).
-                    CONTEXT: User provided an ROI Snapshot.
+                    CONTEXT: User provided an ROI Snapshot .
                     USER QUESTION: "{user_input}"
                     TASK: Diagnose and Mention "Digital Pathology Analysis".
+                    RULES: DO NOT invent prices.
                     OUTPUT: Short, Concise English.
                     """
                     response = model.generate_content([image_prompt, image], stream=True)
                 else:
+                    # 🔥 严防死守的 Prompt
                     text_prompt = f"""
                     ACT AS: Senior Scientific Consultant for iHisto.
                     CLIENT INFO: {st.session_state.client_info['name']} from {st.session_state.client_info['company']}.
-                    REFERENCE DATA (Price List): {IHISTO_SERVICES}
+                    
+                    REFERENCE DATA (Official Price List):
+                    {IHISTO_SERVICES}
+                    
                     YOUR GOAL: Consult, Quote, and Intake.
-                    CURRENT HISTORY: {conversation_history}
+                    
+                    CURRENT HISTORY:
+                    {conversation_history}
+                    
                     USER INPUT: "{user_input}"
+                    
+                    🛑 STRICT PRICING RULES (CRITICAL):
+                    1. **STRICTLY** use the prices from REFERENCE DATA. 
+                    2. **DO NOT INVENT** volume discounts (e.g., do NOT say "500 slides is cheaper" unless it is literally in the text above).
+                    3. IF YOU CANNOT FIND THE SERVICE: Say "I will need to check with the sales team for a custom quote." Do NOT guess a price.
+                    4. **DOUBLE CHECK:** If the list says $6.00, do NOT output $4.50.
+                    
                     LOGIC FLOW:
                     1. Consultation: Expert advice.
-                    2. Pricing: Use Reference Data.
+                    2. Pricing: Quote EXACTLY from the list.
                     3. Intake: Verify fields (Species, Tissue, Service, Target).
+                    
                     OUTPUT: Professional, Concise, Bullet points. English.
                     """
                     response = model.generate_content(text_prompt, stream=True)
