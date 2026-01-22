@@ -5,70 +5,99 @@ from PIL import Image
 import pandas as pd
 import re
 import json
+import glob
 
 # --- 1. Configuration & Setup ---
 try:
     INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except:
-    st.error("⚠️ 未找到密钥！请确保配置了 .streamlit/secrets.toml")
+    st.error("⚠️ Key Missing. Please check .streamlit/secrets.toml")
     st.stop()
 
-# --- 2. 📂 Load Data ---
-# 确保文件名一致
-SERVICES_FILE = "data/iHisto_Inc_Product_Service_List_20260120.csv"
 TOP_LOGO_FILENAME = "images/color_logo-h.png" 
 AVATAR_FILENAME = "images/new_logo.png"
 
+# --- 2. 📂 "Universal" Data Loader (核心引擎) ---
 @st.cache_data
-def load_services_from_csv():
-    # 路径检查
-    if not os.path.exists(SERVICES_FILE):
-        return "⚠️ Service list CSV not found in data folder."
+def load_services_universal():
+    # 扫描所有 CSV
+    possible_files = glob.glob("*.csv") + glob.glob("data/*.csv")
     
+    if not possible_files:
+        return "⚠️ System Error: No Price List Found.", None
+
+    found_df = None
+    
+    # 循环尝试读取
+    for f in possible_files:
+        # 尝试多种编码
+        encodings_to_try = ['utf-8', 'ISO-8859-1', 'cp1252', 'gbk']
+        for encoding in encodings_to_try:
+            try:
+                df = pd.read_csv(f, header=0, encoding=encoding)
+                df.columns = df.columns.str.strip()
+                
+                # 检查是否包含关键列
+                col_name = next((c for c in df.columns if 'product' in c.lower() or 'service' in c.lower()), None)
+                col_price = next((c for c in df.columns if 'price' in c.lower() or 'sales' in c.lower()), None)
+                
+                if col_name and col_price:
+                    found_df = df
+                    break 
+            except:
+                continue
+        if found_df is not None:
+            break
+
+    if found_df is None:
+        return "⚠️ Error: Price list format incorrect.", None
+
+    # 格式化数据给 AI
     try:
-        # 读取 CSV，header=0
-        df = pd.read_csv(SERVICES_FILE, header=0)
-        
         service_text = ""
+        col_name = next((c for c in found_df.columns if 'product' in c.lower() or 'service' in c.lower()), None)
+        col_price = next((c for c in found_df.columns if 'price' in c.lower() or 'sales' in c.lower()), None)
+        col_desc = next((c for c in found_df.columns if 'memo' in c.lower() or 'desc' in c.lower()), None)
+        
         current_name = ""
         current_desc = ""
         current_price = ""
         
-        for index, row in df.iterrows():
-            # 容错获取列名
-            col_name = next((c for c in df.columns if "Product" in str(c)), None)
-            col_price = next((c for c in df.columns if "Sales" in str(c) or "Price" in str(c)), None)
-            col_desc = next((c for c in df.columns if "Memo" in str(c) or "Description" in str(c)), None)
-            
-            if not col_name: continue
-
+        for index, row in found_df.iterrows():
             name = str(row[col_name]).strip()
-            price = str(row[col_price]).strip()
-            desc = str(row[col_desc]).strip() if col_desc else ""
-            
+            raw_price = str(row[col_price]).strip()
+            price = raw_price.replace(',', '').replace('"', '') # 清洗价格
+            desc = str(row[col_desc]).strip() if col_desc and pd.notna(row[col_desc]) else ""
+
             if name == 'nan': name = ""
             if price == 'nan': price = ""
             
             if name:
                 if current_name:
-                    # 格式化为 AI 易读的清单格式
                     service_text += f"ITEM: {current_name} | PRICE: ${current_price}\n"
+                    if current_desc: service_text += f"DETAILS: {current_desc}\n"
+                    service_text += "---\n"
                 current_name = name
                 current_price = price if price else "Inquire"
-            
+                current_desc = desc
+            else:
+                if current_name and desc: current_desc += f" {desc}"
+        
         if current_name:
             service_text += f"ITEM: {current_name} | PRICE: ${current_price}\n"
-            
-        return service_text
-    except Exception as e:
-        return f"Error parsing CSV: {e}"
+        
+        return service_text, found_df
 
-IHISTO_SERVICES = load_services_from_csv()
+    except Exception:
+        return "⚠️ Error processing data.", None
+
+# 加载数据
+IHISTO_SERVICES, _ = load_services_universal()
 
 # Page Config
 st.set_page_config(page_title="iHisto AI Platform", page_icon="🔬", layout="centered")
 
-# CSS Styling (保留您指定的按钮位置)
+# CSS Styling (保持 -200px / 450px)
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -77,7 +106,6 @@ st.markdown("""
         .stChatInput { padding-bottom: 20px; }
         .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
-        /* === 您的自定义按钮位置 === */
         div[data-testid="stPopover"] {
             position: fixed; bottom: 28px; left: 50%; margin-left: -200px;
             width: auto !important; min-width: unset !important; z-index: 1000000;
@@ -88,13 +116,10 @@ st.markdown("""
             width: auto !important; min-width: unset !important; z-index: 1000000;
             background-color: transparent !important;
         }
-
-        /* 手机端适配 */
         @media (max-width: 800px) {
             div[data-testid="stPopover"] { left: 10px; bottom: 80px; margin-left: 0; }
             div[data-testid="stButton"] { left: auto; right: 10px; bottom: 80px; margin-left: 0; }
         }
-
         div[data-testid="stPopover"] > button, div[data-testid="stButton"] > button {
             border-radius: 50%; width: 40px; height: 40px; border: 1px solid #ddd;
             background-color: #ffffff; color: #2e86de; font-size: 20px;
@@ -117,7 +142,7 @@ with col2:
     st.markdown("<h3 style='text-align: center; color: #555; margin-top: 10px; font-size: 20px;'>Advanced Histopathology Scientific Assistant</h3>", unsafe_allow_html=True)
     st.markdown("---")
 
-# --- 4. Init & Session State ---
+# --- 4. Init & Session ---
 try:
     genai.configure(api_key=INTERNAL_API_KEY)
     model = genai.GenerativeModel('gemini-flash-latest')
@@ -125,7 +150,6 @@ except Exception as e:
     st.error(f"Connection Failed: {e}")
     st.stop()
 
-# 默认开场白
 INITIAL_MESSAGE = {
     "role": "assistant",
     "content": "Welcome to iHisto! To better assist you with your scientific needs, **please let me know your Name, Email, and Organization/Company.**"
@@ -137,6 +161,20 @@ if "messages" not in st.session_state:
 if "client_info" not in st.session_state:
     st.session_state.client_info = {"name": None, "email": None, "company": None}
     st.session_state.is_identified = False
+
+# --- 5. Sidebar (Clean Version) ---
+with st.sidebar:
+    st.title("👤 Client Profile")
+    if st.session_state.is_identified:
+        st.success("✅ Verified Client")
+        st.text_input("Name", value=st.session_state.client_info["name"], disabled=True)
+        st.text_input("Company", value=st.session_state.client_info["company"], disabled=True)
+    else:
+        st.warning("⏳ Info Pending...")
+        st.text_input("Name (Draft)", value=st.session_state.client_info["name"] or "", disabled=True)
+        st.text_input("Email (Draft)", value=st.session_state.client_info["email"] or "", disabled=True)
+        st.text_input("Company (Draft)", value=st.session_state.client_info["company"] or "", disabled=True)
+        st.info("AI features locked.")
 
 # --- 6. Chat Display ---
 for message in st.session_state.messages:
@@ -238,35 +276,38 @@ if user_input:
                     """
                     response = model.generate_content([image_prompt, image], stream=True)
                 else:
-                    # 🔥🔥🔥 核心修正：强制开启“收据模式” 🔥🔥🔥
+                    # 🔥 双阶段智能 Prompt：防止在信息不足时瞎报价 🔥
                     text_prompt = f"""
-                    ACT AS: The iHisto Pricing Calculator (STRICT).
+                    ACT AS: Senior Scientific Consultant for iHisto.
                     
-                    OFFICIAL PRICE LIST:
+                    OFFICIAL PRICE DATA (Source of Truth): 
                     {IHISTO_SERVICES}
                     
-                    USER QUESTION: "{user_input}"
+                    USER INPUT: "{user_input}"
                     
-                    🛑 ABSOLUTE RULES (DO NOT BREAK):
-                    1. **ITEMIZE EVERYTHING**: If the user asks for a workflow (e.g., "From tissue to slide"), you MUST list every step.
-                    2. **MATH IS MANDATORY**: You must explicitly show the addition.
-                       Example: "Processing ($7) + Embedding ($6) + Cutting ($6) + H&E ($6) = Total $25".
-                    3. **EXACT PRICES ONLY**: You must copy the exact price from the OFFICIAL PRICE LIST. 
-                       - Do not guess. 
-                       - Do not round up/down.
-                    4. **NO DISCOUNTS**: NEVER invent a discount. Even if the total is high, show the real total.
-                    5. **NO RANGES**: Do not say "$50-$100". Calculate the exact sum of the components.
+                    YOUR GOAL: Guide the user to a solution, but ONLY quote when details are clear.
                     
-                    BEHAVIOR:
-                    - If user asks "How much for H&E?", answer: "Routine Histology:H&E Staining is $6.00".
-                    - If user asks for a full slide prep, break it down:
-                      1. Processing (Find exact price)
-                      2. Embedding (Find exact price)
-                      3. Sectioning (Find exact price)
-                      4. Staining (Find exact price)
-                      5. Total
+                    🛑 LOGIC FLOW (MANDATORY):
                     
-                    OUTPUT FORMAT: Clear, line-by-line receipt style. English.
+                    **PHASE 1: ANALYZE THE REQUEST**
+                    - Is the request VAGUE? (e.g., "tumor study", "IHC service", "how much is scanning")
+                    - Is the request SPECIFIC? (e.g., "H&E for 10 mouse lung slides", "CD3 IHC on 5 slides")
+                    
+                    **PHASE 2: EXECUTE**
+                    
+                    ► IF VAGUE (Consultation Mode):
+                      - DO NOT generate a price receipt yet.
+                      - ASK clarifying questions (e.g., "What species?", "Which markers?", "How many samples?", "Do you need analysis?").
+                      - Provide general scientific advice relevant to the topic.
+                    
+                    ► IF SPECIFIC (Quote Mode):
+                      - Provide Scientific Workflow advice.
+                      - GENERATE "STRICT PRICING RECEIPT":
+                        1. USE EXACT PRICES from data.
+                        2. SHOW MATH: List components and ADD them up (e.g. $7 + $6 = $13).
+                        3. NO DISCOUNTS.
+                    
+                    OUTPUT: Professional, conversational, expert tone. English.
                     """
                     response = model.generate_content(text_prompt, stream=True)
 
