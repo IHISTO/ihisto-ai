@@ -27,28 +27,30 @@ def load_services_from_csv():
         return "⚠️ Service list CSV not found in data folder. Please check file path."
     
     try:
-        # 读取 CSV，跳过前2行标题，以第1行(Index 0)作为表头
+        # --- 修改点在这里 ---
+        # 你的图片显示第一行就是标题，所以使用 header=0
         df = pd.read_csv(SERVICES_FILE, header=0)
         
-        # 数据清洗：选取需要的列 (根据你的 CSV 结构)
-        # 假设列名是 'Product/Service full name', 'Memo/Description', 'Sales price'
-        # 如果列名有变化，这里需要微调
+        # 🛡️ 防御性编程：去除列名两端的空格，防止因为 "Sales price " 这种小错误报错
+        df.columns = df.columns.str.strip()
         
         service_text = ""
         current_name = ""
         current_desc = ""
         current_price = ""
 
-        # 遍历每一行，处理合并逻辑
+        # 遍历每一行
         for index, row in df.iterrows():
-            name = str(row['Product/Service full name']).strip()
-            desc = str(row['Memo/Description']).strip()
-            price = str(row['Sales price']).strip()
+            # 确保这里引用的列名与你的 Excel/CSV 图片完全一致
+            # 图片列名: Product/Service full name | Memo/Description | Sales price
+            name = str(row.get('Product/Service full name', '')).strip()
+            desc = str(row.get('Memo/Description', '')).strip()
+            price = str(row.get('Sales price', '')).strip()
 
-            # 处理空值
-            if name == 'nan': name = ""
-            if desc == 'nan': desc = ""
-            if price == 'nan': price = ""
+            # 处理 'nan' 字符串 (pandas读取空值时可能会转为 nan)
+            if name.lower() == 'nan': name = ""
+            if desc.lower() == 'nan': desc = ""
+            if price.lower() == 'nan': price = ""
 
             if name:
                 # --- 发现新项目 ---
@@ -66,9 +68,9 @@ def load_services_from_csv():
                 current_price = price if price else "Inquire"
             else:
                 # --- 描述延续行 ---
-                # 如果名字是空的，但描述有字，说明是上一行的补充说明 (比如 bullet points)
+                # 只有描述，没有名字，说明是上一行的补充
                 if current_name and desc:
-                    current_desc += f"\n{desc}"
+                    current_desc += f"; {desc}" # 用分号连接补充描述
 
         # 别忘了保存列表里的最后一项
         if current_name:
