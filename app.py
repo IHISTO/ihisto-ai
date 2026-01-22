@@ -13,55 +13,47 @@ except:
     st.error("⚠️ Key Missing: Please check .streamlit/secrets.toml")
     st.stop()
 
-# --- 2. 📂 核弹级数据加载器 (Nuclear Data Loader) ---
-# ❌ 不再使用缓存，强制每次刷新都重读文件
-# @st.cache_data  <-- 已注释掉
+# --- 2. ⚡️ 极速智能数据加载器 (Fast Smart Loader) ---
+# 定义文件路径，不再全盘扫描，直接找这两个位置
+POSSIBLE_FILES = [
+    "data/iHisto Inc_Product_Service List(20260120).csv",
+    "iHisto Inc_Product_Service List(20260120).csv",
+    "data/iHisto Inc_Product_Service List.csv",
+]
+TOP_LOGO_FILENAME = "images/color_logo-h.png" 
+AVATAR_FILENAME = "images/new_logo.png"
 
-def find_and_load_csv():
-    debug_log = []
-    
-    # 1. 全盘扫描：寻找所有 CSV 文件
-    found_csvs = []
-    for root, dirs, files in os.walk("."): # 扫描当前目录及所有子目录
-        for file in files:
-            if file.endswith(".csv"):
-                full_path = os.path.join(root, file)
-                found_csvs.append(full_path)
-    
-    if not found_csvs:
-        return None, "❌ CRITICAL ERROR: No .csv files found in the entire project!"
-
-    debug_log.append(f"📂 Found CSVs: {found_csvs}")
-
-    # 2. 智能选择：优先找带 '2026' 的新文件，否则用第一个
-    target_file = found_csvs[0]
-    for f in found_csvs:
-        if "2026" in f:
-            target_file = f
+@st.cache_data
+def load_services_smart():
+    # 1. 精准寻找文件
+    found_file = None
+    for f in POSSIBLE_FILES:
+        if os.path.exists(f):
+            found_file = f
             break
     
-    debug_log.append(f"👉 Selected Target: {target_file}")
+    if not found_file:
+        return None, "❌ ERROR: CSV file not found. Check 'data' folder."
 
     try:
-        # 3. 暴力寻找标题行 (Auto-Header)
-        header_row_index = -1
-        with open(target_file, 'r', encoding='utf-8', errors='replace') as f:
+        # 2. ⚡️ 智能判断标题行 (关键步骤)
+        # 有的表格标题在第1行(index=0)，有的在第4行(index=3)
+        # 我们只读前20行，找到 "Product/Service full name" 在哪一行
+        header_row_index = 0 # 默认从第1行读
+        
+        with open(found_file, 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
-            for i, line in enumerate(lines[:30]): # 扫前30行
+            for i, line in enumerate(lines[:20]):
                 if "Product/Service full name" in line:
                     header_row_index = i
                     break
         
-        if header_row_index == -1:
-            return None, f"❌ Header not found in {target_file}. Content of first 5 lines:\n{lines[:5]}"
-
-        # 4. 读取数据
-        df = pd.read_csv(target_file, header=header_row_index)
+        # 3. 读取数据
+        df = pd.read_csv(found_file, header=header_row_index)
         
-        # 5. 格式化
+        # 4. 格式化数据
         service_text = ""
-        he_found = False
-        he_price = "N/A"
+        he_check_msg = "❌ H&E Not Found" 
         item_count = 0
         
         current_name = ""
@@ -77,10 +69,9 @@ def find_and_load_csv():
             if price == 'nan': price = ""
             if desc == 'nan': desc = ""
 
-            # H&E 监控
+            # 🔎 实时监控 H&E 价格
             if "H&E" in name and "Staining" in name:
-                he_found = True
-                he_price = price
+                he_check_msg = f"✅ Found: '{name}' -> ${price}"
 
             if name:
                 if current_name:
@@ -98,29 +89,26 @@ def find_and_load_csv():
             service_text += f"ITEM: {current_name} | PRICE: ${current_price}\nDETAILS: {current_desc}\n---\n"
             item_count += 1
             
-        status_msg = f"""
-        ✅ File Loaded: {target_file}
-        📦 Total Items: {item_count}
-        🔬 H&E Status: {'Found' if he_found else 'MISSING'} (Price: ${he_price})
-        """
-        return service_text, status_msg
+        debug_info = f"📂 File: {found_file}\n📏 Header Row: {header_row_index}\n📦 Items: {item_count}\n🔎 {he_check_msg}"
+        return service_text, debug_info
 
     except Exception as e:
-        return None, f"❌ Python Exception: {e}"
+        return None, f"❌ Python Error: {e}"
 
-# 每次刷新页面都会重新执行这里
-IHISTO_SERVICES, DEBUG_MSG = find_and_load_csv()
+# 加载数据
+IHISTO_SERVICES, DEBUG_MSG = load_services_smart()
 
-# Page Config (注意标题变化)
-st.set_page_config(page_title="iHisto AI (v3.0 Debug)", page_icon="🔬", layout="centered")
+# Page Config
+st.set_page_config(page_title="iHisto AI (v4.0 Fast)", page_icon="🔬", layout="centered")
 
-# CSS Styling (保持不变)
+# CSS Styling (保持 760px / 460px)
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
         .stChatInput { padding-bottom: 20px; }
+        .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
         /* Desktop Buttons */
         div[data-testid="stPopover"] {
@@ -186,24 +174,27 @@ if "client_info" not in st.session_state:
 with st.sidebar:
     st.title("👤 Client Profile")
     if st.session_state.is_identified:
-        st.success("✅ Verified")
+        st.success("✅ Verified Client")
         st.text_input("Name", value=st.session_state.client_info["name"], disabled=True)
+        st.text_input("Email", value=st.session_state.client_info["email"], disabled=True)
         st.text_input("Company", value=st.session_state.client_info["company"], disabled=True)
     else:
         st.warning("⏳ Info Pending...")
+        st.text_input("Name (Draft)", value=st.session_state.client_info["name"] or "", disabled=True)
+        st.text_input("Email (Draft)", value=st.session_state.client_info["email"] or "", disabled=True)
+        st.text_input("Company (Draft)", value=st.session_state.client_info["company"] or "", disabled=True)
         st.info("AI features locked.")
 
-    # 🔥🔥 强制显示调试信息 🔥🔥
+    # 🔥🔥 管理员监控面板 🔥🔥
     st.divider()
-    st.markdown("### 🛠️ System Status (Live)")
+    st.markdown("### 🛠️ Data Debugger (Live)")
     if "❌" in DEBUG_MSG:
         st.error(DEBUG_MSG)
     else:
-        st.success(DEBUG_MSG) # 这里必须显示 Found: H&E (Price: 6)
+        st.success(DEBUG_MSG) # 应该显示 Found H&E -> $6
         
-    if st.button("🗑️ Force Clear Memory"):
-        st.cache_data.clear()
-        st.rerun()
+    with st.expander("Show Full Data"):
+        st.text_area("Content sent to AI:", value=IHISTO_SERVICES if IHISTO_SERVICES else "No data", height=200)
 
 # --- 6. Chat Display ---
 for message in st.session_state.messages:
@@ -322,8 +313,14 @@ if user_input:
                     
                     🛑 STRICT PRICING RULES (CRITICAL):
                     1. **STRICTLY** use the prices from REFERENCE DATA. 
-                    2. **DO NOT INVENT** volume discounts.
-                    3. If the list says $6.00, say **$6.00**.
+                    2. **DO NOT INVENT** volume discounts (e.g., do NOT say "500 slides is cheaper" unless it is literally in the text above).
+                    3. IF YOU CANNOT FIND THE SERVICE: Say "I will need to check with the sales team for a custom quote." Do NOT guess a price.
+                    4. **DOUBLE CHECK:** If the list says $6.00, do NOT output $4.50.
+                    
+                    LOGIC FLOW:
+                    1. Consultation: Expert advice.
+                    2. Pricing: Quote EXACTLY from the list.
+                    3. Intake: Verify fields (Species, Tissue, Service, Target).
                     
                     OUTPUT: Professional, Concise, Bullet points. English.
                     """
