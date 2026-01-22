@@ -293,7 +293,7 @@ if user_input:
                     image_prompt = f"""
                     ACT AS: Senior Pathologist for iHisto.
                     CLIENT: {st.session_state.client_info['name']} ({st.session_state.client_info['company']}).
-                    CONTEXT: User provided an ROI Snapshot .
+                    CONTEXT: User provided an ROI Snapshot.
                     USER QUESTION: "{user_input}"
                     TASK: Diagnose and Mention "Digital Pathology Analysis".
                     RULES: DO NOT invent prices.
