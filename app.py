@@ -70,12 +70,12 @@ st.markdown("""
         .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
         div[data-testid="stPopover"] {
-            position: fixed; bottom: 28px; left: 50%; margin-left: -340px;
+            position: fixed; bottom: 28px; left: 50%; margin-left: -200px;
             width: auto !important; min-width: unset !important; z-index: 1000000;
             background-color: transparent !important;
         }
         div[data-testid="stButton"] {
-            position: fixed; bottom: 28px; left: 50%; margin-left: 300px;
+            position: fixed; bottom: 28px; left: 50%; margin-left: 450px;
             width: auto !important; min-width: unset !important; z-index: 1000000;
             background-color: transparent !important;
         }
