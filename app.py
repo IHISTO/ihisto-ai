@@ -15,9 +15,7 @@ except:
     st.error("⚠️ Key Missing. Check secrets.toml")
     st.stop()
 
-# --- 2. ⚡️ 极速透明数据加载器 (Transparent Loader) ---
-# ❌ 不扫描全盘，防止卡死
-# ✅ 显式列出所有可能的文件夹，方便调试
+# --- 2. ⚡️ 极速透明数据加载器 ---
 DATA_DIRS = ["data", "."] 
 TARGET_FILENAME = "iHisto Inc_Product_Service List(20260120).csv"
 BACKUP_FILENAME = "iHisto Inc_Product_Service List.csv"
@@ -26,15 +24,15 @@ def load_data_debug():
     logs = []
     found_path = None
     
-    # 1. 🔍 侦查阶段：看看文件夹里都有啥
+    # 1. 🔍 侦查阶段
     logs.append("--- File System Check ---")
     for d in DATA_DIRS:
         if os.path.exists(d):
             files = os.listdir(d)
+            # 过滤出csv文件
             csvs = [f for f in files if f.endswith('.csv')]
             logs.append(f"📁 Folder '{d}': Found {csvs}")
             
-            # 检查目标文件是否在这里
             if TARGET_FILENAME in files:
                 found_path = os.path.join(d, TARGET_FILENAME)
             elif BACKUP_FILENAME in files and found_path is None:
@@ -43,13 +41,13 @@ def load_data_debug():
             logs.append(f"❌ Folder '{d}' does not exist.")
             
     if not found_path:
-        return None, logs, "❌ ERROR: Target CSV not found in data folder."
+        return None, logs, "❌ ERROR: Target CSV not found."
 
     # 2. 📖 读取阶段
     try:
         logs.append(f"👉 Loading: {found_path}")
         
-        # 智能找标题：读前20行
+        # 智能找标题
         header_idx = 0
         with open(found_path, 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
@@ -58,7 +56,7 @@ def load_data_debug():
                     header_idx = i
                     break
         
-        logs.append(f"📏 Header found at Row: {header_idx + 1} (Index {header_idx})")
+        logs.append(f"📏 Header Row: {header_idx + 1}")
         
         df = pd.read_csv(found_path, header=header_idx)
         
@@ -85,8 +83,6 @@ def load_data_debug():
                 count += 1
                 
         logs.append(f"📦 Loaded {count} items.")
-        logs.append(he_status)
-        
         return service_text, logs, he_status
 
     except Exception as e:
@@ -96,9 +92,9 @@ def load_data_debug():
 IHISTO_SERVICES, DEBUG_LOGS, HE_STATUS = load_data_debug()
 
 # --- Page Setup ---
-st.set_page_config(page_title="iHisto Debug Mode", page_icon="🛠️")
+st.set_page_config(page_title="iHisto Debug", page_icon="🛠️")
 
-# CSS (保持按钮位置)
+# CSS
 st.markdown("""
     <style>
         div[data-testid="stPopover"] { position: fixed; bottom: 28px; left: 760px; z-index: 999; }
@@ -118,24 +114,21 @@ st.markdown("""
 with st.sidebar:
     st.title("🕵️‍♀️ Sherlock Debugger")
     
-    # 1. 状态灯
     if "✅" in HE_STATUS:
         st.success("H&E Price Loaded!")
-        st.info(HE_STATUS) # 这里应该显示 $6
+        st.info(HE_STATUS) 
     else:
         st.error("H&E Price Missing!")
     
-    # 2. 详细日志 (折叠)
-    with st.expander("View System Logs"):
+    with st.expander("View Logs"):
         for log in DEBUG_LOGS:
             st.text(log)
             
-    # 3. 强制刷新按钮
-    if st.button("🧹 Clear Cache & Reload"):
+    if st.button("🧹 Reset"):
         st.cache_data.clear()
         st.rerun()
 
-# --- Main App Logic ---
+# --- Main Logic ---
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     if os.path.exists("images/color_logo-h.png"):
@@ -144,42 +137,37 @@ with col2:
         st.markdown("### iHisto AI")
 
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify your Name, Email, and Company."}]
+    st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify Name, Email, Company."}]
 
 if "client_info" not in st.session_state:
     st.session_state.client_info = {"name": None, "email": None, "company": None}
     st.session_state.is_identified = False
 
-# Chat History
 for msg in st.session_state.messages:
     avatar = "images/new_logo.png" if msg["role"] == "assistant" and os.path.exists("images/new_logo.png") else None
     st.chat_message(msg["role"], avatar=avatar).markdown(msg["content"])
 
-# Upload Button
 popover = st.popover("➕")
 with popover:
     st.markdown("### Upload")
     uploaded_file = st.file_uploader("File", label_visibility="collapsed")
     if uploaded_file: st.success("Uploaded!")
 
-# Reset Button
 if st.button("🔄"):
     if st.session_state.is_identified:
-         st.session_state.messages = [{"role": "assistant", "content": f"Hi {st.session_state.client_info['name']}, chat cleared."}]
+         st.session_state.messages = [{"role": "assistant", "content": "Chat cleared."}]
     else:
-         st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify your Name, Email, and Company."}]
+         st.session_state.messages = [{"role": "assistant", "content": "Welcome! Please verify Name, Email, Company."}]
          st.session_state.client_info = {"name": None, "email": None, "company": None}
          st.session_state.is_identified = False
     st.rerun()
 
-# Chat Input
-user_input = st.chat_input("Ask about H&E price...")
+user_input = st.chat_input("Ask me...")
 
 if user_input:
     st.chat_message("user").markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Gatekeeper
     if not st.session_state.is_identified:
         try:
             info_str = json.dumps(st.session_state.client_info)
@@ -190,33 +178,24 @@ if user_input:
                 st.session_state.client_info = data
                 if all(data.values()):
                     st.session_state.is_identified = True
-                    reply = f"Thanks {data['name']}! Verified. ✅"
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                    st.session_state.messages.append({"role": "assistant", "content": f"Thanks {data['name']}! Verified. ✅"})
                     st.rerun()
                 else:
-                    reply = "I still need details."
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                    st.session_state.messages.append({"role": "assistant", "content": "I still need details."})
             else:
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
         except: st.error("Error")
-    
-    # Main Logic
     else:
-        # Prompt 包含价格表
         prompt = f"""
         ACT AS: iHisto Consultant.
         DATA:
         {IHISTO_SERVICES}
-        
         USER: "{user_input}"
-        
         RULES:
-        1. LOOK UP price in DATA. 
-        2. "H&E" usually means "Routine Histology:H&E Staining".
-        3. IF DATA says $6.00, SAY $6.00. DO NOT SAY $4.50.
-        4. No volume discounts.
+        1. STRICTLY use DATA prices.
+        2. H&E = "Routine Histology:H&E Staining".
+        3. IF DATA says $6.00, SAY $6.00.
         """
-        
         if uploaded_file:
             img = Image.open(uploaded_file)
             resp = model.generate_content([prompt, img], stream=True)
