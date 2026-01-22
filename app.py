@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import os
 from PIL import Image
+import pandas as pd  # <--- 新增：引入 pandas 读取表格
 
 # --- 1. Configuration & Setup ---
 
@@ -12,9 +13,78 @@ except:
     st.error("⚠️ 未找到密钥！请确保配置了 .streamlit/secrets.toml")
     st.stop()
 
-# --- 🖼️ 图片配置 ---
-TOP_LOGO_FILENAME = "color_logo-h.png"
-AVATAR_FILENAME = "new_logo.png"
+# --- 2. 📂 Load Data & Config (关键修改) ---
+
+# 定义文件路径 (确保文件名完全一致，包括空格)
+SERVICES_FILE = "data/iHisto Inc_Product_Service List(20260120).csv"
+TOP_LOGO_FILENAME = "images/color_logo-h.png" 
+AVATAR_FILENAME = "images/new_logo.png"
+
+# 函数：使用 Pandas 智能读取 CSV 价格表
+@st.cache_data  # 加上缓存，提高运行速度
+def load_services_from_csv():
+    if not os.path.exists(SERVICES_FILE):
+        return "⚠️ Service list CSV not found in data folder. Please check file path."
+    
+    try:
+        # 读取 CSV，跳过前2行标题，以第1行(Index 0)作为表头
+        df = pd.read_csv(SERVICES_FILE, header=0)
+        
+        # 数据清洗：选取需要的列 (根据你的 CSV 结构)
+        # 假设列名是 'Product/Service full name', 'Memo/Description', 'Sales price'
+        # 如果列名有变化，这里需要微调
+        
+        service_text = ""
+        current_name = ""
+        current_desc = ""
+        current_price = ""
+
+        # 遍历每一行，处理合并逻辑
+        for index, row in df.iterrows():
+            name = str(row['Product/Service full name']).strip()
+            desc = str(row['Memo/Description']).strip()
+            price = str(row['Sales price']).strip()
+
+            # 处理空值
+            if name == 'nan': name = ""
+            if desc == 'nan': desc = ""
+            if price == 'nan': price = ""
+
+            if name:
+                # --- 发现新项目 ---
+                # 先保存上一个项目(如果有)
+                if current_name:
+                    service_text += f"[{current_name}]\n"
+                    service_text += f"- Price: ${current_price}\n"
+                    if current_desc:
+                        service_text += f"- Details: {current_desc}\n"
+                    service_text += "\n" # 空行分隔
+                
+                # 开始记录新项目
+                current_name = name
+                current_desc = desc
+                current_price = price if price else "Inquire"
+            else:
+                # --- 描述延续行 ---
+                # 如果名字是空的，但描述有字，说明是上一行的补充说明 (比如 bullet points)
+                if current_name and desc:
+                    current_desc += f"\n{desc}"
+
+        # 别忘了保存列表里的最后一项
+        if current_name:
+            service_text += f"[{current_name}]\n"
+            service_text += f"- Price: ${current_price}\n"
+            if current_desc:
+                service_text += f"- Details: {current_desc}\n"
+            service_text += "\n"
+            
+        return service_text
+
+    except Exception as e:
+        return f"Error parsing CSV: {e}"
+
+# 加载服务数据到变量
+IHISTO_SERVICES = load_services_from_csv()
 
 # Page Config
 st.set_page_config(page_title="iHisto AI Platform", page_icon="🔬", layout="centered")
@@ -25,104 +95,42 @@ st.markdown("""
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        
         .stChatInput { padding-bottom: 20px; }
         .stChatMessage .stChatMessageAvatar { width: 40px; height: 40px; }
         
-        /* --- 1. 左侧悬浮按钮 (➕ Upload) --- */
         div[data-testid="stPopover"] {
-            position: fixed;
-            bottom: 28px;             
-            left: 50%;
-            margin-left: -350px;
-            width: auto !important;
-            min-width: unset !important;
-            z-index: 99999;
+            position: fixed; bottom: 28px; left: 50%; margin-left: -350px;
+            width: auto !important; min-width: unset !important; z-index: 99999;
             background-color: transparent !important;
         }
-
-        /* --- 2. 右侧悬浮按钮 (🔄 New Chat) --- */
         div[data-testid="stButton"] {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
-            margin-left: 310px;
-            width: auto !important;
-            min-width: unset !important;
-            z-index: 99999;
+            position: fixed; bottom: 28px; left: 50%; margin-left: 310px;
+            width: auto !important; min-width: unset !important; z-index: 99999;
             background-color: transparent !important;
         }
-
-        /* 📱 小屏幕适配 */
         @media (max-width: 800px) {
-            div[data-testid="stPopover"] {
-                left: 10px;
-                bottom: 25px;
-                margin-left: 0;
-            }
-            div[data-testid="stButton"] {
-                left: auto;
-                right: 10px;
-                bottom: 25px;
-                margin-left: 0;
-            }
+            div[data-testid="stPopover"] { left: 10px; bottom: 25px; margin-left: 0; }
+            div[data-testid="stButton"] { left: auto; right: 10px; bottom: 25px; margin-left: 0; }
         }
-
-        /* --- 3. 按钮通用美化 (圆形) --- */
-        
-        /* 上传按钮美化 */
-        div[data-testid="stPopover"] > button {
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            border: 1px solid #ddd;
-            background-color: #ffffff; 
-            color: #2e86de;
-            font-size: 22px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            transition: all 0.2s;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        div[data-testid="stPopover"] > button, div[data-testid="stButton"] > button {
+            border-radius: 50%; width: 40px; height: 40px; border: 1px solid #ddd;
+            background-color: #ffffff; color: #2e86de; font-size: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08); transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
         }
-        
-        /* 新对话按钮美化 (改为蓝色主题) */
-        div[data-testid="stButton"] > button {
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            border: 1px solid #ddd;
-            background-color: #ffffff; 
-            color: #2e86de; /* 改回主题蓝 */
-            font-size: 20px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            transition: all 0.2s;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        div[data-testid="stPopover"] > button:hover, div[data-testid="stButton"] > button:hover {
+            background-color: #f8f9fa; transform: scale(1.1); color: #5f27cd; border-color: #5f27cd;
         }
-
-        /* 悬停效果 */
-        div[data-testid="stPopover"] > button:hover, 
-        div[data-testid="stButton"] > button:hover {
-            background-color: #f8f9fa;
-            transform: scale(1.1);
-            color: #5f27cd; /* 悬停变紫 */
-            border-color: #5f27cd;
-        }
-        
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. Header & Logo Section ---
+# --- 3. Header Section ---
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     if os.path.exists(TOP_LOGO_FILENAME):
         st.image(TOP_LOGO_FILENAME, use_container_width=True) 
     else:
-        st.warning(f"Top Logo '{TOP_LOGO_FILENAME}' not found.")
+        st.markdown("**iHisto AI Platform**")
 
     st.markdown(
         "<h3 style='text-align: center; color: #555; margin-top: 10px; font-size: 20px;'>"
@@ -132,7 +140,7 @@ with col2:
     )
     st.markdown("---")
 
-# --- 3. AI Model Initialization ---
+# --- 4. AI Initialization ---
 try:
     genai.configure(api_key=INTERNAL_API_KEY)
     model = genai.GenerativeModel('gemini-flash-latest')
@@ -140,19 +148,15 @@ except Exception as e:
     st.error(f"Connection Failed: {e}")
     st.stop()
 
-# --- 4. Chat Interface Logic ---
-
-# 定义初始问候语
+# --- 5. Chat Interface Logic ---
 INITIAL_MESSAGE = {
     "role": "assistant",
-    "content": "Hello! I am the iHisto AI consultant. How can I help with your research or experiment design today?"
+    "content": "Hello! I am the iHisto AI consultant. I can help design experiments, quote prices, and guide your order. How can I assist you today?"
 }
 
-# 初始化历史记录
 if "messages" not in st.session_state:
     st.session_state.messages = [INITIAL_MESSAGE]
 
-# 显示历史记录
 for message in st.session_state.messages:
     current_avatar = AVATAR_FILENAME if message["role"] == "assistant" else None
     if current_avatar and not os.path.exists(current_avatar):
@@ -160,9 +164,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=current_avatar):
         st.markdown(message["content"])
 
-# --- 5. Floating Buttons (The Control Center) ---
-
-# [Left] ➕ Upload Button
+# --- 6. Buttons ---
 popover = st.popover("➕", help="Upload Image")
 with popover:
     st.markdown("### 📂 Upload Image")
@@ -171,24 +173,22 @@ with popover:
         st.success("Image Ready!")
         st.image(uploaded_file, width=150)
 
-# [Right] 🔄 New Chat Button (关键修改)
-# 点击后，不是清空，而是重置为只有初始消息的状态
+# New Chat / Reset
 if st.button("🔄", help="Start a New Chat"):
-    st.session_state.messages = [INITIAL_MESSAGE] # 重置为初始状态
-    st.rerun() # 立即刷新
+    st.session_state.messages = [INITIAL_MESSAGE]
+    st.rerun()
 
-# 提示条逻辑
 if uploaded_file:
     st.markdown(
         f"""
-        <div style="position: fixed; bottom: 85px; right: 20px; background-color: #e8f5e9; padding: 8px 15px; border-radius: 10px; border: 1px solid #c8e6c9; z-index: 9998; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <div style="position: fixed; bottom: 85px; right: 20px; background-color: #e8f5e9; padding: 8px 15px; border-radius: 10px; border: 1px solid #c8e6c9; z-index: 9998; font-size: 13px;">
             📎 Attached: <b>{uploaded_file.name}</b>
         </div>
         """, 
         unsafe_allow_html=True
     )
 
-# --- 6. User Input & Processing ---
+# --- 7. Processing Logic ---
 user_input = st.chat_input("Chat with iHisto AI...")
 
 if user_input:
@@ -218,49 +218,46 @@ if user_input:
                 TASK:
                 1. Observe: Morphology & Staining.
                 2. Diagnose: Answer concise.
-                3. Service: Mention iHisto's "Digital Pathology Services".
+                3. Service: Mention "Digital Pathology Analysis".
                 OUTPUT: Short, Concise English.
                 """
                 response = model.generate_content([image_prompt, image], stream=True)
             
-            # --- Text Mode (The "Consult -> Order" Logic) ---
+            # --- Text Mode ---
             else:
                 text_prompt = f"""
                 ACT AS: Senior Scientific Consultant for iHisto.
                 
-                YOUR GOAL: 
-                1. First, discuss science, solve problems, and provide expert advice (Consultation Mode).
-                2. ONLY when the user is ready or asks to proceed, switch to "Intake Mode" to fill the "iHisto Request Sheet".
+                REFERENCE DATA (iHisto Official Services & Pricing):
+                {IHISTO_SERVICES}
+                
+                YOUR GOAL: Consult, Quote, and Intake.
                 
                 CURRENT HISTORY:
                 {conversation_history}
                 
                 USER INPUT: "{user_input}"
                 
-                LOGIC FLOW (Follow Strictly):
+                LOGIC FLOW:
                 
-                **SCENARIO A: CONSULTATION (Default)**
-                - If the user is asking scientific questions, DO NOT ask about the order form yet.
-                - ACTION: Provide a **Short, Concise** expert answer. Ask 1-2 "Deep Dive" technical questions.
+                **SCENARIO A: SCIENTIFIC CONSULTATION**
+                - Answer questions expertly. Ask Deep Dive technical questions.
                 
-                **SCENARIO B: TRANSITION TO ORDER**
-                - If the user says "That sounds good", "I'm ready", or "Let's do this".
-                - ACTION: Ask politely: "**Would you like me to help you submit an order for this experiment now?**"
+                **SCENARIO B: PRICING / QUOTE**
+                - User asks about cost.
+                - ACTION: Use REFERENCE DATA to calculate estimate.
+                - Disclaimer: "This is an estimate."
                 
-                **SCENARIO C: INTAKE (Form Filling)**
-                - ONLY IF the user says "Yes".
-                - ACTION: Act as "Intake Manager". Check Mandatory Fields: Species, Tissue, Fixation, Service Type, Target, Analysis.
-                - IF fields are missing: Ask for them specifically.
-                - IF all fields are present: Output the "Submission Summary" table.
+                **SCENARIO C: INTAKE (Order)**
+                - User says "Ready to order".
+                - ACTION: Check Mandatory Fields (Species, Tissue, Fixation, Service, Target).
+                - IF ready: Output Summary Table.
                 
-                OUTPUT GUIDELINES:
-                - Tone: Professional, Expert, Concise.
-                - Format: Use Bullet points.
-                - Language: Strictly English.
+                OUTPUT: Professional, Concise, Bullet points. English.
                 """
                 response = model.generate_content(text_prompt, stream=True)
 
-            # --- 流式输出 ---
+            # --- Stream Output ---
             for chunk in response:
                 if chunk.text:
                     full_response += chunk.text
