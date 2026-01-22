@@ -16,7 +16,7 @@ except:
 # --- 2. 📂 Load Data & Config (关键修改) ---
 
 # 定义文件路径 (确保文件名完全一致，包括空格)
-SERVICES_FILE = "data/iHisto Inc_Product_Service List(20260120).csv"
+SERVICES_FILE = "data/iHisto Inc_Product_Service List_20260120.csv"
 TOP_LOGO_FILENAME = "images/color_logo-h.png" 
 AVATAR_FILENAME = "images/new_logo.png"
 
