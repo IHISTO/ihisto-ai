@@ -14,7 +14,7 @@ except:
     st.stop()
 
 # --- 2. 📂 强力智能数据加载器 (Smart Data Loader) ---
-# 🔥 这里就是您说的“修改这两个”：双保险机制
+# 🔥 核心升级：双文件保险 + 自动寻找标题
 POSSIBLE_FILES = [
     "data/iHisto Inc_Product_Service List(20260120).csv", # 优先找新文件
     "data/iHisto Inc_Product_Service List.csv",           # 找不到新文件就找旧的
@@ -35,7 +35,7 @@ def load_services_smart():
         return None, "❌ ERROR: No CSV file found in 'data' folder. Please check file name."
 
     try:
-        # 2. 智能锁定标题行：不管空几行，自动找 "Product/Service full name"
+        # 2. 智能锁定标题行：不管空几行，自动从前20行里找 "Product/Service full name"
         header_row_index = -1
         # 使用 open 读取原始文本，避免 pandas 格式报错
         with open(found_file, 'r', encoding='utf-8', errors='replace') as f:
@@ -70,7 +70,7 @@ def load_services_smart():
             if price == 'nan': price = ""
             if desc == 'nan': desc = ""
 
-            # 🔥 专门监控 H&E 的价格，方便您在侧边栏检查
+            # 🔥 专门监控 H&E 的价格，确保读取到了 $6.00
             if "H&E" in name and "Staining" in name:
                 he_check_msg = f"✅ Found: '{name}' -> ${price}"
 
@@ -105,7 +105,7 @@ IHISTO_SERVICES, DEBUG_MSG = load_services_smart()
 # Page Config
 st.set_page_config(page_title="iHisto AI Platform", page_icon="🔬", layout="centered")
 
-# CSS Styling (保持 760px / 460px)
+# CSS Styling (修复按钮位置 760px/460px)
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -293,7 +293,7 @@ if user_input:
                     image_prompt = f"""
                     ACT AS: Senior Pathologist for iHisto.
                     CLIENT: {st.session_state.client_info['name']} ({st.session_state.client_info['company']}).
-                    CONTEXT: User provided an ROI Snapshot.
+                    CONTEXT: User provided an ROI Snapshot .
                     USER QUESTION: "{user_input}"
                     TASK: Diagnose and Mention "Digital Pathology Analysis".
                     RULES: DO NOT invent prices.
