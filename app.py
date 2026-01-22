@@ -25,7 +25,7 @@ def load_services_from_csv():
     if not os.path.exists(SERVICES_FILE):
         return "⚠️ Service list CSV not found in data folder."
     try:
-        df = pd.read_csv(SERVICES_FILE, header=2)
+        df = pd.read_csv(SERVICES_FILE, header=1)
         service_text = ""
         current_name = ""
         current_desc = ""
